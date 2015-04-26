@@ -183,6 +183,36 @@ function coerce_table(value)
 	end
 end
 
+-- return and cache full path of an icon
+function find_icon_file(icon_description, icon_files, name)
+	-- return a cached entry
+	if icon_files and icon_files[name] then
+		return icon_files[name]
+	end
+	if not icon_description or not icon_files or not name then
+		return
+	end
+	local info = icon_description[name]
+	if not info then
+		return
+	end
+	print(string.format("find_icon_file:%s", name))
+	-- try icon defined in the Awesome theme
+	if beautiful[info.beautiful_name] then
+		icon_files[name] = beautiful[info.beautiful_name]
+	end
+	if not icon_files[name] and info.default_icon then
+		local default_icon
+		if type(info.default_icon) == 'function' then
+			default_icon = info.default_icon()
+		else
+			default_icon = info.default_icon
+		end
+		icon_files[name] = freedesktop_utils.lookup_icon({ icon = default_icon })
+	end
+	return icon_files[name]
+end
+
 -- return the full paths to icon files using the description
 function find_icon_files(icon_description)
 	if not icon_description then
@@ -200,23 +230,7 @@ function find_icon_files(icon_description)
 	-- Load icons
 	local icon_files = {}
 	for name, info in pairs(icon_description) do
-		-- try icon defined in the Awesome theme
-		if beautiful[info.beautiful_name] then
-			icon_files[name] = beautiful[info.beautiful_name]
-		end
-		-- if no icon in the theme, try default
-		if not icon_files[name] and info.default_icon then
-			local default_icon
-			if type(info.default_icon) == 'function' then
-				default_icon = info.default_icon()
-			else
-				default_icon = info.default_icon
-			end
-			icon_files[name] = freedesktop_utils.lookup_icon({ icon = default_icon })
-		end
-	end
-	if not have_gnome_icon_theme then
-		freedesktop_utils.icon_theme = previous_icon_theme
+		find_icon_file(icon_description, icon_files, name)
 	end
 	return icon_files
 end

@@ -1051,25 +1051,19 @@ function update_icon(station_index)
 	-- 1st try: use sky icon
 	if weather_data[station_index].metar_data and weather_data[station_index].metar_data.sky then
 		local sky_key = string.format('weather_sky_%d', weather_data[station_index].metar_data.sky)
-		if icon_files[sky_key] then
-			icon_file = icon_files[sky_key]
-		end
+		icon_file = delightful_utils.find_icon_file(icon_description, icon_files, sky_key)
 	end
 	-- 2nd try: use clouds icon
 	if weather_data[station_index].metar_data and weather_data[station_index].metar_data.clouds and weather_data[station_index].metar_data.clouds[1] then
 		local clouds_key = string.format('weather_clouds_%d', weather_data[station_index].metar_data.clouds[1].coverage)
-		if icon_files[clouds_key] then
-			icon_file = icon_files[clouds_key]
-		end
+		icon_file = delightful_utils.find_icon_file(icon_description, icon_files, clouds_key)
 	end
 	-- 3rd try: search weather for the icon
 	if weather_data[station_index].metar_data and weather_data[station_index].metar_data.weather then
 		local weather_key, weather_icon_file
 		if weather_data[station_index].metar_data.weather.descriptor then
 			weather_key = string.format('weather_descriptor_%d', weather_data[station_index].metar_data.weather.descriptor)
-			if icon_files[weather_key] then
-				weather_icon_file = icon_files[weather_key]
-			end
+			weather_icon_file = delightful_utils.find_icon_file(icon_description, icon_files, weather_key)
 		end
 		if not weather_icon_file or (weather_data[station_index].metar_data.weather.descriptor ~= metar.WEATHER_PHENOMENA.THUNDERSTORM) then
 			if weather_data[station_index].metar_data.weather.intensity == metar.WEATHER_INTENSITY.LIGHT and
@@ -1078,9 +1072,7 @@ function update_icon(station_index)
 			else
 				weather_key = string.format('weather_phenomena_%d', weather_data[station_index].metar_data.weather.phenomena)
 			end
-			if icon_files[weather_key] then
-				weather_icon_file = icon_files[weather_key]
-			end
+			weather_icon_file = delightful_utils.find_icon_file(icon_description, icon_files, weather_key)
 		end
 		if weather_icon_file then
 			icon_file = weather_icon_file
@@ -1099,6 +1091,8 @@ function update_icon(station_index)
 	if icon_file and weather_data[station_index].daytime ~= nil and not weather_data[station_index].daytime then
 		for _, day_icon in pairs(night_icons) do
 			local night_icon = string.format('%s_night', day_icon)
+			delightful_utils.find_icon_file(icon_description, icon_files, day_icon)
+			delightful_utils.find_icon_file(icon_description, icon_files, night_icon)
 			if icon_file == icon_files[day_icon] and icon_files[night_icon] then
 				icon_file = icon_files[night_icon]
 				break
@@ -1109,11 +1103,13 @@ function update_icon(station_index)
 	if icon_file and weather_data[station_index].moonphase then
 		for _, day_icon in pairs(night_icons) do
 			local night_icon = string.format('%s_night', day_icon)
+			delightful_utils.find_icon_file(icon_description, icon_files, night_icon)
 			if icon_file == icon_files[night_icon] then
 				local night_icon_moon = string.format('%s_%03d', night_icon, weather_data[station_index].moonphase)
 				if weather_data[station_index].moonphase == 180 then
 					night_icon_moon = night_icon_moon:gsub('_180$', '')
 				end
+				delightful_utils.find_icon_file(icon_description, icon_files, night_icon_moon)
 				if icon_files[night_icon_moon] then
 					icon_file = icon_files[night_icon_moon]
 					break
@@ -1198,7 +1194,9 @@ end
 -- Initalization
 function load(self, config)
 	handle_config(config)
-	icon_files = delightful_utils.find_icon_files(icon_description)
+	icon_files = {}
+	delightful_utils.find_icon_file(icon_description, icon_files, 'error')
+	delightful_utils.find_icon_file(icon_description, icon_files, 'not_found')
 	local units_config_mapping = {
 		temperature_unit = 'temperature',
 		wind_speed_unit  = 'speed',
