@@ -819,10 +819,12 @@ function update_data(station_index)
 	-- ...time stamp
 	if metar_data.timestamp then
 		-- print in local time of timezone available, otherwise display in UTC
-		if weather_config[station_index].timezone_offset_local then
-			weather_data[station_index].summary.updated = os.date('%c', metar_data.timestamp + weather_config[station_index].timezone_offset_local)
+		if weather_config[station_index].timezone_offset_local and
+			weather_config[station_index].timezone_offset_local > 0
+		then
+			weather_data[station_index].summary.updated = os.date('%c', metar_data.timestamp)
 		else
-			weather_data[station_index].summary.updated = os.date('%c UTC', metar_data.timestamp)
+			weather_data[station_index].summary.updated = os.date('!%c UTC', metar_data.timestamp)
 		end
 	else
 		weather_data[station_index].summary.updated = 'N/A'
