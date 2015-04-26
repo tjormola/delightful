@@ -1178,7 +1178,7 @@ function handle_config(user_config)
 				if not validation_errors then
 					validation_errors = {}
 				end
-				table.insert('Must specify city name if no weather station code given given')
+				table.insert(validation_errors, 'Must specify city name if no weather station code given given')
 			end
 		end
 		if validation_errors then
