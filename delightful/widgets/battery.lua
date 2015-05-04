@@ -111,12 +111,12 @@ local config_description = {
 }
 
 local icon_description = {
-	battery_ac     = { beautiful_name = 'delightful_battery_ac',     default_icon = function() return 'gtk-about' end       },
-	battery_full   = { beautiful_name = 'delightful_battery_full',   default_icon = function() return 'battery' end         },
+	battery_ac     = { beautiful_name = 'delightful_battery_ac',     default_icon = function() return 'battery-good-charging' end },
+	battery_full   = { beautiful_name = 'delightful_battery_full',   default_icon = function() return 'battery-good' end    },
 	battery_medium = { beautiful_name = 'delightful_battery_medium', default_icon = function() return 'battery-low' end     },
 	battery_low    = { beautiful_name = 'delightful_battery_low',    default_icon = function() return 'battery-caution' end },
 	not_found      = { beautiful_name = 'delightful_not_found',      default_icon = function() return 'dialog-question' end },
-	error          = { beautiful_name = 'delightful_error',          default_icon = function() return 'error' end           },
+	error          = { beautiful_name = 'delightful_error',          default_icon = function() return 'dialog-error' end    },
 }
 
 -- Configuration handler

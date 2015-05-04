@@ -172,7 +172,7 @@ local icon_description = {
 	weather_showers           = { beautiful_name = 'delightful_weather_showers',           default_icon = function() return 'weather-showers' end           },
 	weather_fog               = { beautiful_name = 'delightful_weather_fog',               default_icon = function() return 'weather-fog' end               },
 	not_found                 = { beautiful_name = 'delightful_not_found',                 default_icon = function() return 'dialog-question' end           },
-	error                     = { beautiful_name = 'delightful_error',                     default_icon = function() return 'error' end                     },
+	error                     = { beautiful_name = 'delightful_error',                     default_icon = function() return 'dialog-error' end              },
 }
 -- dynamically generate entries for the moon phase icons
 local night_icons = { 'weather_clear', 'weather_few_clouds' }
