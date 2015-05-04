@@ -192,9 +192,9 @@ local config_description = {
 }
 
 local icon_description = {
-	read   = { beautiful_name = 'delightful_imap_mail_read',   default_icon = function() return 'stock_mail-open' end   },
-	unread = { beautiful_name = 'delightful_imap_mail_unread', default_icon = function() return 'stock_mail-unread' end },
-	error  = { beautiful_name = 'delightful_error',            default_icon = function() return 'error' end             },
+	read   = { beautiful_name = 'delightful_imap_mail_read',   default_icon = function() return 'mail-read' end   },
+	unread = { beautiful_name = 'delightful_imap_mail_unread', default_icon = function() return 'mail-unread' end },
+	error  = { beautiful_name = 'delightful_error',            default_icon = function() return 'dialog-error' end             },
 }
 
 -- Poll the mailbox
