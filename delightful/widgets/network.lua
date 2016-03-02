@@ -217,7 +217,7 @@ function load(self, config)
 			icon_file = icon_files.wired
 		end
 
-    	if icon_file then
+		if icon_file then
 			local icon_data = image(icon_file)
 			if icon_data then
 				local buttons = awful_button({}, 1, function()
@@ -227,9 +227,9 @@ function load(self, config)
 				end)
 				icon = widget({ type = 'imagebox', name = 'net' .. device .. 'icon' })
 				icon:buttons(buttons)
-		    	icon.image = icon_data
+				icon.image = icon_data
 				local tooltip = awful_tooltip({ objects = { icon } })
-    			tooltip:set_text(' Download and upload speed \n of the network device ' .. device .. ' \n in kilobytes per second ')
+				tooltip:set_text(' Download and upload speed \n of the network device ' .. device .. ' \n in kilobytes per second ')
 				if not icons then
 					icons = {}
 				end
@@ -237,8 +237,8 @@ function load(self, config)
 			end
 		end
 
-	    local net_widget = widget({ type = 'textbox', name = 'net' .. device .. 'widget' })
-    	local widget_text = '↓'
+		local net_widget = widget({ type = 'textbox', name = 'net' .. device .. 'widget' })
+		local widget_text = '↓'
 		local close_span = false
 		if color_download then
 			widget_text = string.format('%s<span color="%s">', widget_text, color_download)
@@ -259,7 +259,7 @@ function load(self, config)
 			widget_text = string.format('%s%s', widget_text, '</span>')
 			close_span = false
 		end
-    	vicious.register(net_widget, vicious.widgets.net, widget_text, network_config.update_interval)
+		vicious.register(net_widget, vicious.widgets.net, widget_text, network_config.update_interval)
 		if not widgets then
 			widgets = {}
 		end
