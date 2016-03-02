@@ -211,7 +211,7 @@ function update_data(force_update)
 					sink_data[sink_id].volnum  = math.floor(((maxvol / 100) * sink_data[sink_id].volperc) + 0.5)
 			end)
 			-- parse device name
-			line:gsub('^%s+alsa\.name%s+=%s+[\'"]([^\'"]+)[\'"]$', function(match)
+			line:gsub('^%s+device\.description%s+=%s+[\'"]([^\'"]+)[\'"]$', function(match)
 					if not sink_num_ok then
 						return
 					end
