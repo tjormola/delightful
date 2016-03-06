@@ -1,7 +1,7 @@
 -------------------------------------------------------------------------------
 --
--- CPU widget for Awesome 3.4
--- Copyright (C) 2011 Tuomas Jormola <tj@solitudo.net>
+-- CPU widget for Awesome 3.5
+-- Copyright (C) 2011-2016 Tuomas Jormola <tj@solitudo.net>
 --
 -- Licensed under the terms of GNU General Public License Version 2.0.
 --
@@ -47,18 +47,14 @@
 ---
 -------------------------------------------------------------------------------
 
-local awful_button      = require('awful.button')
-local awful_tooltip     = require('awful.tooltip')
-local awful_util        = require('awful.util')
-local awful_widget      = require('awful.widget')
-local image             = require('image')
-local widget            = require('widget')
+local awful       = require('awful')
+local wibox       = require('wibox')
 
-local delightful_utils  = require('delightful.utils')
-local vicious           = require('vicious')
+local delightful  = { utils = require('delightful.utils') }
+local vicious     = require('vicious')
 
-local pairs             = pairs
-local string            = { format = string.format }
+local pairs  = pairs
+local string = { format = string.format }
 
 module('delightful.widgets.cpu')
 
@@ -71,36 +67,36 @@ local config_description = {
 		name     = 'graph_width',
 		required = true,
 		default  = 20,
-		validate = function(value) return delightful_utils.config_int(value) end
+		validate = function(value) return delightful.utils.config_int(value) end
 	},
 	{
 		name     = 'command',
-		validate = function(value) return delightful_utils.config_string(value) end
+		validate = function(value) return delightful.utils.config_string(value) end
 	},
 	{
 		name     = 'no_icon',
-		validate = function(value) return delightful_utils.config_boolean(value) end
+		validate = function(value) return delightful.utils.config_boolean(value) end
 	},
 	{
 		name     = 'update_interval',
 		required = true,
 		default  = 1,
-		validate = function(value) return delightful_utils.config_int(value) end
+		validate = function(value) return delightful.utils.config_int(value) end
 	},
 }
 
 local icon_description = {
-	cpu = { beautiful_name = 'delightful_cpu', default_icon = function() return 'sensors-applet-cpu' end },
+	cpu = { beautiful_name = 'delightful_cpu', default_icon = 'sensors-applet-cpu' },
 }
 
 -- Configuration handler
 function handle_config(user_config)
-	local empty_config = delightful_utils.get_empty_config(config_description)
+	local empty_config = delightful.utils.get_empty_config(config_description)
 	if not user_config then
 		user_config = empty_config
 	end
-	local config_data = delightful_utils.normalize_config(user_config, config_description)
-	local validation_errors = delightful_utils.validate_config(config_data, config_description)
+	local config_data = delightful.utils.normalize_config(user_config, config_description)
+	local validation_errors = delightful.utils.validate_config(config_data, config_description)
 	if validation_errors then
 		fatal_error = 'Configuration errors: \n'
 		for error_index, error_entry in pairs(validation_errors) do
@@ -119,52 +115,56 @@ end
 function load(self, config)
 	handle_config(config)
 	if fatal_error then
-		delightful_utils.print_error('cpu', fatal_error)
+		delightful.utils.print_error('cpu', fatal_error)
 		return nil, nil
 	end
 	local icon
 	local icon_files
 	if not cpu_config.no_icon then
-		icon_files = delightful_utils.find_icon_files(icon_description)
+		icon_files = delightful.utils.find_icon_files(icon_description)
 	end
 	local icon_file = icon_files and icon_files.cpu
 	if icon_file then
-		local icon_data = image(icon_file);
-		if icon_data then
-			local buttons = awful_button({}, 1, function()
-					if not fatal_error and cpu_config.command then
-						awful_util.spawn(cpu_config.command, true)
-					end
-			end)
-			icon = widget({ type = 'imagebox', name = 'cpu' })
-			icon:buttons(buttons)
-			icon.image = icon_data
-			icon_tooltip = awful_tooltip({ objects = { icon } })
-		end
+		local buttons = awful.button({}, 1, function()
+			if not fatal_error and cpu_config.command then
+				awful.util.spawn(cpu_config.command, true)
+			end
+		end)
+		icon = wibox.widget.imagebox()
+		icon:buttons(buttons)
+		icon:set_image(icon_file)
+		icon_tooltip = awful.tooltip({ objects = { icon } })
 	end
 
-	local bg_color        = delightful_utils.find_theme_color({ 'bg_widget', 'bg_normal'                     })
-	local fg_color        = delightful_utils.find_theme_color({ 'fg_widget', 'fg_normal'                     })
-	local fg_center_color = delightful_utils.find_theme_color({ 'fg_center_widget', 'fg_widget', 'fg_normal' })
-	local fg_end_color    = delightful_utils.find_theme_color({ 'fg_end_widget', 'fg_widget', 'fg_normal'    })
+	local bg_color        = delightful.utils.find_theme_color({ 'bg_widget', 'bg_normal'                     })
+	local fg_color        = delightful.utils.find_theme_color({ 'fg_widget', 'fg_normal'                     })
+	local fg_center_color = delightful.utils.find_theme_color({ 'fg_center_widget', 'fg_widget', 'fg_normal' })
+	local fg_end_color    = delightful.utils.find_theme_color({ 'fg_end_widget', 'fg_widget', 'fg_normal'    })
 
-	local cpu_widget = awful_widget.graph({ layout = awful_widget.layout.horizontal.rightleft })
+	local cpu_widget = awful.widget.graph()
 	if bg_color then
 		cpu_widget:set_background_color(bg_color)
 		cpu_widget:set_border_color(bg_color)
 	end
-	if fg_color then
-		cpu_widget:set_color(fg_color)
-	end
+	local color_args = fg_color
+	local width  = cpu_config.graph_width
+	local height = 19
 	if fg_color and fg_center_color and fg_end_color then
-		cpu_widget:set_gradient_colors({ fg_color, fg_center_color, fg_end_color })
+		color_args = {
+			type = 'linear',
+			from = { width / 2, 0 },
+			to = { width / 2, height },
+			stops = {{ 0, fg_end_color }, { 0.5, fg_center_color }, { 1, fg_color }},
+		}
 	end
-	cpu_widget:set_width(cpu_config.graph_width)
-	cpu_widget:set_height(19)
-	cpu_widget:set_gradient_angle(180)
+	cpu_widget:set_color(color_args)
+	cpu_widget:set_width(width)
+	cpu_widget:set_height(height)
+	local w = wibox.layout.fixed.horizontal()
+	w:add(cpu_widget)
 	vicious.register(cpu_widget, vicious.widgets.cpu, vicious_formatter, cpu_config.update_interval)
 
-	return { cpu_widget }, { icon }
+	return { w }, { icon }
 end
 
 -- Vicious display formatter, also update widget tooltip

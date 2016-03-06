@@ -1,0 +1,74 @@
+--- /etc/xdg/awesome/rc.lua	2015-09-01 14:28:43.000000000 +0300
++++ rc.lua	2016-03-08 23:21:54.879044992 +0200
+@@ -166,6 +166,58 @@
+                                               if client.focus then client.focus:raise() end
+                                           end))
+ 
++-- Delightful widgets
++require('delightful.widgets.battery')
++require('delightful.widgets.cpu')
++require('delightful.widgets.datetime')
++require('delightful.widgets.imap')
++require('delightful.widgets.memory')
++require('delightful.widgets.network')
++require('delightful.widgets.pulseaudio')
++require('delightful.widgets.weather')
++
++-- Which widgets to install?
++-- This is the order the widgets appear in the wibox.
++delightful_widgets = {
++    delightful.widgets.network,
++    delightful.widgets.cpu,
++    delightful.widgets.memory,
++    delightful.widgets.weather,
++    delightful.widgets.imap,
++    delightful.widgets.battery,
++    delightful.widgets.pulseaudio,
++    delightful.widgets.datetime,
++}
++
++-- Widget configuration
++delightful_config = {
++    [delightful.widgets.cpu] = {
++        command = 'gnome-system-monitor',
++    },
++    [delightful.widgets.imap] = {
++        {
++            user      = 'myuser',
++            password  = 'mypassword',
++            host      = 'mail.example.com',
++            ssl       = true,
++            mailboxes = { 'INBOX', 'awesome' },
++            command   = 'evolution -c mail',
++        },
++    },
++    [delightful.widgets.memory] = {
++        command = 'gnome-system-monitor',
++    },
++    [delightful.widgets.weather] = {
++        {
++            city = 'Helsinki',
++            command = 'gnome-www-browser http://ilmatieteenlaitos.fi/saa/Helsinki',
++        },
++    },
++    [delightful.widgets.pulseaudio] = {
++        mixer_command = 'pavucontrol',
++    },
++}
++
+ for s = 1, screen.count() do
+     -- Create a promptbox for each screen
+     mypromptbox[s] = awful.widget.prompt()
+@@ -194,8 +246,10 @@
+ 
+     -- Widgets that are aligned to the right
+     local right_layout = wibox.layout.fixed.horizontal()
+-    if s == 1 then right_layout:add(wibox.widget.systray()) end
+-    right_layout:add(mytextclock)
++    if s == 1 then
++        right_layout:add(wibox.widget.systray())
++        delightful.utils.fill_wibox_container(delightful_widgets, delightful_config, right_layout)
++    end
+     right_layout:add(mylayoutbox[s])
+ 
+     -- Now bring it all together (with the tasklist in the middle)

@@ -1,7 +1,7 @@
 -------------------------------------------------------------------------------
 --
--- PulseAudio mixer widget for Awesome 3.4
--- Copyright (C) 2011 Tuomas Jormola <tj@solitudo.net>
+-- PulseAudio mixer widget for Awesome 3.5
+-- Copyright (C) 2011-2016 Tuomas Jormola <tj@solitudo.net>
 --
 -- Licensed under the terms of GNU General Public License Version 2.0.
 --
@@ -39,7 +39,7 @@
 --	      pacmd_command      = '/usr/local/bin/pacmd',
 -- -- Command to execute when right-clicking the widget icon.
 -- -- Empty by default.
---	      mixer_command      = 'gnome-volume-control',
+--	      mixer_command      = 'pavucontrol',
 -- -- Don't try to display any icons. Default is false (i.e. display icons).
 --        no_icon            = true,
 -- -- How often update the widget data. Default is 10 seconds.
@@ -68,26 +68,23 @@
 --
 -------------------------------------------------------------------------------
 
-local awful_button       = require('awful.button')
-local awful_tooltip      = require('awful.tooltip')
-local awful_util         = require('awful.util')
-local awful_widget       = require('awful.widget')
-local image              = require('image')
-local widget             = require('widget')
+local awful      = require('awful')
+local wibox      = require('wibox')
 
-local delightful_utils   = require('delightful.utils')
-local vicious            = require('vicious')
+local delightful = { utils = require('delightful.utils') }
+local vicious    = require('vicious')
 
-local io                 = { popen = io.popen }
-local math               = { floor = math.floor }
-local os                 = { execute = os.execute, time = os.time }
-local pairs              = pairs
-local setmetatable       = setmetatable
-local string             = { format = string.format }
-local table              = { insert = table.insert, remove = table.remove }
-local tonumber           = tonumber
-local type               = type
+local io           = { popen = io.popen }
+local math         = { floor = math.floor }
+local os           = { execute = os.execute, time = os.time }
+local pairs        = pairs
+local setmetatable = setmetatable
+local string       = { format = string.format }
+local table        = { insert = table.insert, remove = table.remove }
+local tonumber     = tonumber
+local type         = type
 local print=print
+
 module('delightful.widgets.pulseaudio')
 
 local maxvol             = 65536
@@ -111,51 +108,51 @@ local pacmd_force_update = false
 local config_description = {
 	{
 		name     = 'sink_nums',
-		coerce   = function(value) return delightful_utils.coerce_table(value) end,
-		validate = function(value) return delightful_utils.config_table(value) end
+		coerce   = function(value) return delightful.utils.coerce_table(value) end,
+		validate = function(value) return delightful.utils.config_table(value) end
 	},
 	{
 		name     = 'pulseaudio_start',
 		required = true,
 		default  = true,
-		validate = function(value) return delightful_utils.config_boolean(value) end
+		validate = function(value) return delightful.utils.config_boolean(value) end
 	},
 	{
 		name     = 'pulseaudio_command',
 		required = true,
 		default  = 'pulseaudio',
-		validate = function(value) return delightful_utils.config_string(value) end
+		validate = function(value) return delightful.utils.config_string(value) end
 	},
 	{
 		name     = 'pacmd_command',
 		required = true,
 		default  = 'pacmd',
-		validate = function(value) return delightful_utils.config_string(value) end
+		validate = function(value) return delightful.utils.config_string(value) end
 	},
 	{
 		name     = 'mixer_command',
 		default  = function(config_data) if mixer_cmd then return mixer_cmd end end,
-		validate = function(value) return delightful_utils.config_string(value) end
+		validate = function(value) return delightful.utils.config_string(value) end
 	},
 	{
 		name     = 'no_icon',
-		validate = function(value) return delightful_utils.config_boolean(value) end
+		validate = function(value) return delightful.utils.config_boolean(value) end
 	},
 	{
 		name     = 'update_interval',
 		required = true,
 		default  = 10,
-		validate = function(value) return delightful_utils.config_int(value) end
+		validate = function(value) return delightful.utils.config_int(value) end
 	},
 }
 
 local icon_description = {
-	vol   = { beautiful_name = 'delightful_vol',      default_icon = function() return 'multimedia-volume-control' end },
-	max   = { beautiful_name = 'delightful_vol_max',  default_icon = function() return 'audio-volume-high' end         },
-	med   = { beautiful_name = 'delightful_vol_med',  default_icon = function() return 'audio-volume-medium' end       },
-	min   = { beautiful_name = 'delightful_vol_min',  default_icon = function() return 'audio-volume-low' end          },
-	mute  = { beautiful_name = 'delightful_vol_mute', default_icon = function() return 'audio-volume-muted' end        },
-	error = { beautiful_name = 'delightful_error',    default_icon = function() return 'dialog-error' end              },
+	vol   = { beautiful_name = 'delightful_vol',      default_icon = 'multimedia-volume-control' },
+	max   = { beautiful_name = 'delightful_vol_max',  default_icon = 'audio-volume-high'         },
+	med   = { beautiful_name = 'delightful_vol_med',  default_icon = 'audio-volume-medium'       },
+	min   = { beautiful_name = 'delightful_vol_min',  default_icon = 'audio-volume-low'          },
+	mute  = { beautiful_name = 'delightful_vol_mute', default_icon = 'audio-volume-muted'        },
+	error = { beautiful_name = 'delightful_error',    default_icon = 'dialog-error'              },
 }
 
 -- Read sink info
@@ -176,19 +173,13 @@ function update_data(force_update)
 			line:gsub('^[%s\*]+index:%s(%d)$', function(match)
 					sink_num_ok = false
 					local sink_num = tonumber(match)
-					if pulseaudio_config.sink_nums then
-						for _, accepted_sink_num in pairs(pulseaudio_config.sink_nums) do
-							sink_num_ok = sink_num == accepted_sink_num
-							if sink_num_ok then
-								break
-							end
+					for accepted_sink_id, accepted_sink_num in pairs(pulseaudio_config.sink_nums) do
+						sink_num_ok = sink_num == accepted_sink_num
+						if sink_num_ok then
+							sink_id = accepted_sink_id
+							sink_data[sink_id].num = sink_num
+							break
 						end
-					else
-						sink_num_ok = true
-					end
-					if sink_num_ok then
-						sink_id = sink_id + 1
-						sink_data[sink_id].num = sink_num
 					end
 			end)
 			-- parse mute status
@@ -196,11 +187,7 @@ function update_data(force_update)
 					if not sink_num_ok then
 						return
 					end
-					if match == 'yes' then
-						sink_data[sink_id].muted = true
-					else
-						sink_data[sink_id].muted = false
-					end
+					sink_data[sink_id].muted = match == 'yes'
 			end)
 			-- parse volume
 			line:gsub('^%s+volume:[%s%w-:/]+%s(%d+)%%', function(match)
@@ -222,7 +209,7 @@ function update_data(force_update)
 	for found_sink_id, found_sink_data in pairs(sink_data) do
 		if not (found_sink_data.name and found_sink_data.muted ~= nil and found_sink_data.volperc) then
 			sink_data[found_sink_id] = {
-					error_string = 'Failed to get required info about PulseAudio sink'
+				error_string = 'Failed to get required info about PulseAudio sink'
 			}
 		end
 	end
@@ -252,7 +239,7 @@ function update_icon(sink_id)
 	end
 	if icon_file and (not prev_icons[sink_id] or prev_icons[sink_id] ~= icon_file) then
 		prev_icons[sink_id]  = icon_file
-		icons[sink_id].image = image(icon_file)
+		icons[sink_id]:set_image(icon_file)
 	end
 end
 
@@ -281,12 +268,12 @@ end
 
 -- Configuration handler
 function handle_config(user_config)
-	local empty_config = delightful_utils.get_empty_config(config_description)
+	local empty_config = delightful.utils.get_empty_config(config_description)
 	if not user_config then
 		user_config = empty_config
 	end
-	local config_data = delightful_utils.normalize_config(user_config, config_description)
-	local validation_errors = delightful_utils.validate_config(config_data, config_description)
+	local config_data = delightful.utils.normalize_config(user_config, config_description)
+	local validation_errors = delightful.utils.validate_config(config_data, config_description)
 	if validation_errors then
 		fatal_error = 'Configuration errors: \n'
 		for error_index, error_entry in pairs(validation_errors) do
@@ -306,7 +293,7 @@ end
 function load(self, config)
 	handle_config(config)
 	if not pulseaudio_config.no_icon then
-		icon_files = delightful_utils.find_icon_files(icon_description)
+		icon_files = delightful.utils.find_icon_files(icon_description)
 	end
 	update_sink_string()
 	update_number_of_sinks()
@@ -317,57 +304,62 @@ function load(self, config)
 		end
 	end
 
-	local bg_color        = delightful_utils.find_theme_color({ 'bg_widget', 'bg_normal'                     })
-	local fg_color        = delightful_utils.find_theme_color({ 'fg_widget', 'fg_normal'                     })
-	local fg_center_color = delightful_utils.find_theme_color({ 'fg_center_widget', 'fg_widget', 'fg_normal' })
-	local fg_end_color    = delightful_utils.find_theme_color({ 'fg_end_widget', 'fg_widget', 'fg_normal'    })
+	local bg_color        = delightful.utils.find_theme_color({ 'bg_widget', 'bg_normal'                     })
+	local fg_color        = delightful.utils.find_theme_color({ 'fg_widget', 'fg_normal'                     })
+	local fg_center_color = delightful.utils.find_theme_color({ 'fg_center_widget', 'fg_widget', 'fg_normal' })
+	local fg_end_color    = delightful.utils.find_theme_color({ 'fg_end_widget', 'fg_widget', 'fg_normal'    })
 
 	for sink_id = 1, number_of_sinks do
 		if icon_files.vol and icon_files.error then
-			local buttons = awful_util.table.join(
-					awful_button({}, 1, function()
+			local buttons = awful.util.table.join(
+					awful.button({}, 1, function()
 							if sink_data[sink_id] and not fatal_error and not sink_data[sink_id].error_string then
 								pulseaudio_control('toggle', sink_id)
 							end
 					end),
-					awful_button({}, 3, function()
+					awful.button({}, 3, function()
 							if sink_data[sink_id] and not fatal_error and not sink_data[sink_id].error_string then
 								if pulseaudio_config.mixer_command then
-									awful_util.spawn(pulseaudio_config.mixer_command, true)
+									awful.util.spawn(pulseaudio_config.mixer_command, true)
 								end
 							end
 					end),
-					awful_button({}, 4, function()
+					awful.button({}, 4, function()
 							if sink_data[sink_id] and not fatal_error and not sink_data[sink_id].error_string then
 								pulseaudio_control('up', sink_id)
 							end
 					end),
-					awful_button({}, 5, function()
+					awful.button({}, 5, function()
 							if sink_data[sink_id] and not fatal_error and not sink_data[sink_id].error_string then
 								pulseaudio_control('down', sink_id)
 							end
 					end)
 			)
-			icons[sink_id] = widget({ type = 'imagebox', name = 'pulseaudio_' .. sink_id})
+			icons[sink_id] = wibox.widget.imagebox()
 			icons[sink_id]:buttons(buttons)
-			tooltips[sink_id] = awful_tooltip( { objects = { icons[sink_id] } })
+			tooltips[sink_id] = awful.tooltip( { objects = { icons[sink_id] } })
 			update_icon(sink_id)
 			update_tooltip(sink_id)
 		end
-
-		local widget = awful_widget.progressbar({ layout = awful_widget.layout.horizontal.rightleft })
+		local widget = awful.widget.progressbar()
 		if bg_color then
 			widget:set_border_color(bg_color)
 			widget:set_background_color(bg_color)
 		end
-		if fg_color then
-			widget:set_color(fg_color)
-		end
+		local color_args = fg_color
+		local width  = 8
+		local height = 19
 		if fg_color and fg_center_color and fg_end_color then
-			widget:set_gradient_colors({ fg_color, fg_center_color, fg_end_color })
+			color_args = {
+				type = "linear",
+				from = { 0, 0 },
+				to = { width, height },
+				stops = {{ 0, fg_end_color }, { 0.5, fg_center_color }, { 1, fg_color }},
+			}
 		end
-		widget:set_width(8)
-		widget:set_height(19)
+		widget:set_color(color_args)
+		widget:set_width(width)
+		widget:set_height(height)
 		widget:set_vertical(true)
 		widgets[sink_id] = widget
 		vicious.register(widget, self, '$1', pulseaudio_config.update_interval, sink_id)
@@ -382,14 +374,14 @@ function vicious_worker(format, sink_id)
 	update_tooltip(sink_id)
 	pacmd_force_update = false
 	if fatal_error then
-		delightful_utils.print_error('pulseaudio', fatal_error)
+		delightful.utils.print_error('pulseaudio', fatal_error)
 		return 0
 	end
 	if not sink_data[sink_id] then
 		return 0
 	end
 	if sink_data[sink_id].error_string then
-		delightful_utils.print_error('pulseaudio', sink_data[sink_id].error_string)
+		delightful.utils.print_error('pulseaudio', sink_data[sink_id].error_string)
 		return 0
 	end
 	return sink_data[sink_id].volperc
@@ -404,16 +396,16 @@ function update_sink_string(force_update)
 	local now = os.time()
 	local pacmd_command = pulseaudio_config.pacmd_command .. ' list-sinks'
 	if force_update or not pacmd_string or (pacmd_timestamp and now - pacmd_timestamp >= pulseaudio_config.update_interval) then
-		pacmd_string = awful_util.pread(pacmd_command)
+		pacmd_string = awful.util.pread(pacmd_command)
 		pacmd_timestamp = now
 	end
 	if not pacmd_string or #pacmd_string == 0 then
 		pacmd_string = nil
 		-- try starting PulseAudio
 		if pulseaudio_config.pulseaudio_start then
-			awful_util.spawn(pulseaudio_config.pulseaudio_command, false)
+			awful.util.spawn(pulseaudio_config.pulseaudio_command, false)
 			os.execute('sleep 1')
-			pacmd_string = awful_util.pread(pacmd_command)
+			pacmd_string = awful.util.pread(pacmd_command)
 			if not pacmd_string or #pacmd_string == 0 then
 				pacmd_string = nil
 				fatal_error = 'Tried to start PulseAudio, but failed list PulseAudio sinks. Is PulseAudio installed and properly configured?'
@@ -479,7 +471,7 @@ function pulseaudio_set_volume(sink_id, step)
 	end
 	local volnum_new = math.floor(((maxvol / 100) * volperc_new) + 0.5)
 	if volnum_new ~= sink_data[sink_id].volnum then
-		awful_util.spawn('pacmd set-sink-volume ' .. sink_data[sink_id].num .. ' ' .. volnum_new, false)
+		awful.util.spawn('pacmd set-sink-volume ' .. sink_data[sink_id].num .. ' ' .. volnum_new, false)
 		sink_data[sink_id].volperc = volperc_new
 		sink_data[sink_id].volnum = volnum_new
 	end
@@ -501,7 +493,7 @@ function pulseaudio_mute(sink_id)
 	if not sink_data[sink_id] or fatal_error or sink_data[sink_id].error_string then
 		return
 	end
-	awful_util.spawn('pacmd set-sink-mute ' .. sink_data[sink_id].num .. ' 1', false) 
+	awful.util.spawn('pacmd set-sink-mute ' .. sink_data[sink_id].num .. ' 1', false)
 	sink_data[sink_id].muted = true
 end
 
@@ -509,7 +501,7 @@ function pulseaudio_unmute(sink_id)
 	if not sink_data[sink_id] or fatal_error or sink_data[sink_id].error_string then
 		return
 	end
-	awful_util.spawn('pacmd set-sink-mute ' .. sink_data[sink_id].num .. ' 0', false) 
+	awful.util.spawn('pacmd set-sink-mute ' .. sink_data[sink_id].num .. ' 0', false)
 	sink_data[sink_id].muted = false
 end
 

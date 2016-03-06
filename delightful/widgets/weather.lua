@@ -1,8 +1,8 @@
 local p=print
 -------------------------------------------------------------------------------
 --
--- Weather widget for Awesome 3.4
--- Copyright (C) 2011 Tuomas Jormola <tj@solitudo.net>
+-- Weather widget for Awesome 3.5
+-- Copyright (C) 2011-2016 Tuomas Jormola <tj@solitudo.net>
 --
 -- Licensed under the terms of GNU General Public License Version 2.0.
 --
@@ -23,13 +23,13 @@ local p=print
 -- This widget uses weatherlib.lua by Tuomas Jormola <tj@solitudo.net>
 -- http://solitudo.net/software/lua/metar/
 --
--- This widget optionally uses LuaExpat
--- http://www.keplerproject.org/luaexpat/
+-- This widget optionally uses LuaExpat http://www.keplerproject.org/luaexpat/
+-- and lua-zlib https://github.com/brimworks/lua-zlib
 --
--- This widget optionally uses GWeather XML location datafile.
+-- This widget optionally uses MateWeather/GWeather XML location datafile.
 --
--- Widget uses icons from the package gnome-icon-theme.
---
+-- Widget uses icons from the packages
+-- gnome-icon-theme-full adwaita-icon-theme-full libmateweather-common
 --
 -- Configuration:
 --
@@ -68,12 +68,12 @@ local p=print
 -- -- the following setting. Format of the city string is
 -- -- "<country>, <city name>" or just "<city name>" if the city name is
 -- -- globally unique (in this case the first matching city name from
--- -- the GWeather location database is used). The city (and optional
--- -- country) is matched against the GWeather XML database which contains
+-- -- the MateWeather/GWeather location database is used). The city (and optional
+-- -- country) is matched against the MateWeather/GWeather XML database which contains
 -- -- additional information about the location (ICAO airport code for fetching
 -- -- the METAR data, weather station name, coordinates and timezone of
--- -- the location). For this to work, you need to have GWeather and
--- -- LuaExpat installed.
+-- -- the location). For this to work, you need to have MateWeather/GWeather and
+-- -- LuaExpat installed. If using MateWeather, you also need lua-zlib.
 --        city                  = 'United Kingdom, London',
 -- -- Timezone offset in seconds from the UTC time. Includes possible
 -- -- daylight saving. Positive to East of UTC and negative to West of UTC,
@@ -89,13 +89,13 @@ local p=print
 --        update_interval       = 30 * 60,
 -- -- How long to show notifications in seconds, 10 seconds by default
 --        notification_delay    = 5,
--- -- Location of the GWeather XML location datafile.
--- -- '/usr/share/libgweather/Locations.xml' by default.
---        gweather_file         = '/usr/local/share/libgweather/Locations.xml',
+-- -- Location of the MateWeather/GWeather XML location datafile.
+-- -- '/usr/share/libmateweather/Locations.xml.gz' by default.
+--        location_file         = '/usr/share/libmateweather/Locations.xml.gz',
 -- },
 -- -- Following is a minimal configuration to display weather in
 -- -- Helsinki, Finland with all the default settings and using
--- -- GWeather location database.
+-- -- MateWeather/GWeather location database.
 -- {
 --        city = 'Helsinki',
 -- },
@@ -124,55 +124,55 @@ local p=print
 --
 -------------------------------------------------------------------------------
 
-local awful_button     = require('awful.button')
-local awful_util       = require('awful.util')
-local beautiful         = require('beautiful')
-local capi             = { mouse = mouse, screen = screen }
-local image            = require('image')
-local naughty          = require('naughty')
-local widget           = require('widget')
+local awful      = require('awful')
+local beautiful  = require('beautiful')
+local capi       = { mouse = mouse, screen = screen }
+local naughty    = require('naughty')
+local wibox      = require('wibox')
 
-local io               = { lines = io.lines }
-local math             = { floor = math.floor }
-local os               = { date = os.date, time = os.time }
-local pairs            = pairs
-local require          = require
-local setmetatable     = setmetatable
-local string           = { format = string.format }
-local table            = { insert = table.insert }
-local tonumber         = tonumber
-local tostring         = tostring
-local type             = type
+local delightful = { utils = require('delightful.utils') }
+local vicious    = require('vicious')
 
-local delightful_utils = require('delightful.utils')
-local vicious          = require('vicious')
+local metar      = require('metar')
+local weatherlib = require('weatherlib')
 
-local metar            = require('metar')
-local weatherlib       = require('weatherlib')
+local print=print
+local assert       = assert
+local io           = { lines = io.lines, open = io.open, close = io.close, read = io.read }
+local math         = { floor = math.floor }
+local os           = { date = os.date, time = os.time }
+local pairs        = pairs
+local require      = require
+local setmetatable = setmetatable
+local string       = { format = string.format, sub = string.sub }
+local table        = { insert = table.insert }
+local tonumber     = tonumber
+local tostring     = tostring
+local type         = type
 
 module('delightful.widgets.weather')
 
-local widgets          = {}
-local icons            = {}
-local icon_files       = {}
-local prev_icons       = {}
-local weather_config   = {}
-local weather_data     = {}
+local widgets        = {}
+local icons          = {}
+local icon_files     = {}
+local prev_icons     = {}
+local weather_config = {}
+local weather_data   = {}
 
 local icon_description = {
-	weather_clear             = { beautiful_name = 'delightful_weather_clear',             default_icon = function() return 'weather-clear' end             },
-	weather_clear_night       = { beautiful_name = 'delightful_weather_clear_night',       default_icon = function() return 'weather-clear-night' end       },
-	weather_few_clouds        = { beautiful_name = 'delightful_weather_few_clouds',        default_icon = function() return 'weather-few-clouds' end        },
-	weather_few_clouds_night  = { beautiful_name = 'delightful_weather_few_clouds_night',  default_icon = function() return 'weather-few-clouds-night' end  },
-	weather_overcast          = { beautiful_name = 'delightful_weather_overcast',          default_icon = function() return 'weather-overcast' end          },
-	weather_alert             = { beautiful_name = 'delightful_weather_alert',             default_icon = function() return 'weather-severe-alert' end      },
-	weather_storm             = { beautiful_name = 'delightful_weather_strom',             default_icon = function() return 'weather-storm' end             },
-	weather_snow              = { beautiful_name = 'delightful_weather_snow',              default_icon = function() return 'weather-snow' end              },
-	weather_scattered_showers = { beautiful_name = 'delightful_weather_scattered_showers', default_icon = function() return 'weather-showers-scattered' end },
-	weather_showers           = { beautiful_name = 'delightful_weather_showers',           default_icon = function() return 'weather-showers' end           },
-	weather_fog               = { beautiful_name = 'delightful_weather_fog',               default_icon = function() return 'weather-fog' end               },
-	not_found                 = { beautiful_name = 'delightful_not_found',                 default_icon = function() return 'dialog-question' end           },
-	error                     = { beautiful_name = 'delightful_error',                     default_icon = function() return 'dialog-error' end              },
+	weather_clear             = { beautiful_name = 'delightful_weather_clear',             default_icon = 'weather-clear'             },
+	weather_clear_night       = { beautiful_name = 'delightful_weather_clear_night',       default_icon = 'weather-clear-night'       },
+	weather_few_clouds        = { beautiful_name = 'delightful_weather_few_clouds',        default_icon = 'weather-few-clouds'        },
+	weather_few_clouds_night  = { beautiful_name = 'delightful_weather_few_clouds_night',  default_icon = 'weather-few-clouds-night'  },
+	weather_overcast          = { beautiful_name = 'delightful_weather_overcast',          default_icon = 'weather-overcast'          },
+	weather_alert             = { beautiful_name = 'delightful_weather_alert',             default_icon = 'weather-severe-alert'      },
+	weather_storm             = { beautiful_name = 'delightful_weather_strom',             default_icon = 'weather-storm'             },
+	weather_snow              = { beautiful_name = 'delightful_weather_snow',              default_icon = 'weather-snow'              },
+	weather_scattered_showers = { beautiful_name = 'delightful_weather_scattered_showers', default_icon = 'weather-showers-scattered' },
+	weather_showers           = { beautiful_name = 'delightful_weather_showers',           default_icon = 'weather-showers'           },
+	weather_fog               = { beautiful_name = 'delightful_weather_fog',               default_icon = 'weather-fog'               },
+	not_found                 = { beautiful_name = 'delightful_not_found',                 default_icon = 'dialog-question'           },
+	error                     = { beautiful_name = 'delightful_error',                     default_icon = 'dialog-error'              },
 }
 -- dynamically generate entries for the moon phase icons
 local night_icons = { 'weather_clear', 'weather_few_clouds' }
@@ -551,44 +551,44 @@ local config_description = {
 	},
 	{
 		name     = 'city',
-		validate = function(value) return delightful_utils.config_string(value) end
+		validate = function(value) return delightful.utils.config_string(value) end
 	},
 	{
 		name     = 'timezone_offset_local',
 		required = true,
 		default  = function(config_data) return weatherlib.calc_timezone_offset() end,
-		validate = function(value) return delightful_utils.config_int(value) end
+		validate = function(value) return delightful.utils.config_int(value) end
 	},
 	{
 		name     = 'command',
-		validate = function(value) return delightful_utils.config_string(value) end
+		validate = function(value) return delightful.utils.config_string(value) end
 	},
 	{
 		name     = 'no_icon',
-		validate = function(value) return delightful_utils.config_boolean(value) end
+		validate = function(value) return delightful.utils.config_boolean(value) end
 	},
 	{
 		name     = 'update_interval',
 		required = true,
 		default  = 20 * 60,
-		validate = function(value) return delightful_utils.config_int(value) end
+		validate = function(value) return delightful.utils.config_int(value) end
 	},
 	{
 		name     = 'notification_delay',
 		required = true,
 		default  = 10,
-		validate = function(value) return delightful_utils.config_int(value) end
+		validate = function(value) return delightful.utils.config_int(value) end
 	},
 	{
-		name     = 'gweather_file',
-		default  = function(config_data) if config_data.city then return '/usr/share/libgweather/Locations.xml' end return nil end,
-		validate = function(value) return delightful_utils.config_file(value) end
+		name     = 'location_file',
+		default  = function(config_data) if config_data.city then return '/usr/share/libmateweather/Locations.xml.gz' end return nil end,
+		validate = function(value) return delightful.utils.config_file(value) end
 	},
 	-- User is not supposed to supply configuration of this setting
 	{
-		name     = 'gweather_data',
+		name     = 'location_data',
 		default  = function(config_data)
-			if not config_data or not config_data.gweather_file then
+			if not config_data or not config_data.location_file then
 				return nil
 			end
 			local country, city, station_code
@@ -605,7 +605,7 @@ local config_description = {
 			-- parse station code, station name, coordinates, city, country,
 			-- and timezone from GWeather XML location datafile
 			local check_data = { country = country, city = city, station_code = station_code }
-			local gweather_data = {}
+			local location_data = {}
 			local open = { country = false, city = false, location = false }
 			local skip = { country = false, city = false }
 			local session_data = {}
@@ -620,8 +620,8 @@ local config_description = {
 					if check_data.station_code then
 						session_data.coordinates = v
 					else
-						if not gweather_data.coordinates then
-							gweather_data.coordinates = v
+						if not location_data.coordinates then
+							location_data.coordinates = v
 						end
 					end
 				end,
@@ -629,8 +629,8 @@ local config_description = {
 					if check_data.station_code then
 						session_data.station_name = v
 					else
-						if not gweather_data.station_name then
-							gweather_data.station_name = v
+						if not location_data.station_name then
+							location_data.station_name = v
 						end
 					end
 				end,
@@ -638,14 +638,14 @@ local config_description = {
 					if check_data.station_code then
 						session_data.station_code = v
 					else
-						if not gweather_data.station_code then
-							gweather_data.station_code = v
+						if not location_data.station_code then
+							location_data.station_code = v
 						end
 					end
 				end,
 				tz = function(p, v)
-					if not gweather_data.station_code then
-						gweather_data.timezone = v
+					if not location_data.station_code then
+						location_data.timezone = v
 					end
 				end,
 			}
@@ -654,7 +654,7 @@ local config_description = {
 			local callbacks
 			callbacks = {
 				StartElement = function(parser, name)
-					if gweather_data.station_code then
+					if location_data.station_code then
 						return
 					end
 					for _, element in pairs(elements) do
@@ -680,7 +680,7 @@ local config_description = {
 							return
 						end
 					end
-					if not gweather_data.coordinates and name == 'coordinates' then
+					if not location_data.coordinates and name == 'coordinates' then
 						callbacks.CharacterData = data_gatherers.coordinates
 						return
 					end
@@ -691,12 +691,12 @@ local config_description = {
 				end,
 				EndElement = function(parser, name)
 					callbacks.CharacterData = false
-					if gweather_data.station_code then
+					if location_data.station_code then
 						return
 					end
 					if check_data.station_code and open.location and name == 'code' and session_data.station_code:lower() == check_data.station_code:lower() then
 						for element in pairs(session_data) do
-							gweather_data[element] = session_data[element]
+							location_data[element] = session_data[element]
 						end
 						return
 					else
@@ -706,7 +706,7 @@ local config_description = {
 									skip[element] = session_data[element]:lower() ~= check_data[element]:lower()
 								end
 								if not skip[element] and element ~= 'location' then
-									gweather_data[element] = session_data[element]
+									location_data[element] = session_data[element]
 								end
 								session_data[element] = nil
 								return
@@ -725,61 +725,72 @@ local config_description = {
 			}
 			local lxp = require('lxp')
 			local parser = lxp.new(callbacks)
-			for line in io.lines(config_data.gweather_file) do
-				parser:parse(line)
+			if string.sub(config_data.location_file, -3) == '.gz' then
+				local zlib = require('zlib')
+				local inflate = zlib.inflate()
+				local fh = assert(io.open(config_data.location_file, 'rb'))
+				local content, eof = inflate(fh:read('*all'))
+				fh:close()
+				if eof then
+					parser:parse(content)
+				end
+			else
+				for line in io.lines(config_data.location_file) do
+					parser:parse(line)
+				end
 			end
 			parser:parse()
 			parser:close()
 			local required_entries = { 'station_code', 'station_name', 'coordinates', 'city', 'country', 'timezone' }
 			for _, entry in pairs(required_entries) do
-				if not gweather_data[entry] then
+				if not location_data[entry] then
 					return nil
 				end
 			end
-			return gweather_data
+			return location_data
 		end
 	},
 	{
 		name     = 'station_code',
-		default  = function(config_data) if config_data.gweather_data then return config_data.gweather_data.station_code end return nil end,
-		validate = function(value) return delightful_utils.config_string(value) end
+		default  = function(config_data) if config_data.location_data then return config_data.location_data.station_code end return nil end,
+		validate = function(value) return delightful.utils.config_string(value) end
 	},
 	-- User is not supposed to supply configuration of these settings
 	{
 		name     = 'station_name',
-		default  = function(config_data) if config_data.gweather_data and config_data.gweather_data.station_name:lower() ~= config_data.city:lower() then return config_data.gweather_data.station_name end return nil end,
-		validate = function(value) return delightful_utils.config_string(value) end
+		default  = function(config_data) if config_data.location_data and config_data.location_data.station_name:lower() ~= config_data.city:lower() then return config_data.location_data.station_name end return nil end,
+		validate = function(value) return delightful.utils.config_string(value) end
 	},
 	{
 		name     = 'latitude',
-		default  = function(config_data) if config_data.gweather_data then local l = config_data.gweather_data.coordinates:match('^([+-]?%d+\.%d+)%s+[+-]?%d+\.%d+$') if l then return tonumber(l) else return nil end end return nil end,
-		validate = function(value) return delightful_utils.config_number(value) end
+		default  = function(config_data) if config_data.location_data then local l = config_data.location_data.coordinates:match('^([+-]?%d+\.%d+)%s+[+-]?%d+\.%d+$') if l then return tonumber(l) else return nil end end return nil end,
+		validate = function(value) return delightful.utils.config_number(value) end
 	},
 	{
 		name     = 'longitude',
-		default  = function(config_data) if config_data.gweather_data then local l = config_data.gweather_data.coordinates:match('^[+-]?%d+\.%d+%s+([+-]?%d+\.%d+)$') if l then return tonumber(l) else return nil end end return nil end,
-		validate = function(value) return delightful_utils.config_number(value) end
+		default  = function(config_data) if config_data.location_data then local l = config_data.location_data.coordinates:match('^[+-]?%d+\.%d+%s+([+-]?%d+\.%d+)$') if l then return tonumber(l) else return nil end end return nil end,
+		validate = function(value) return delightful.utils.config_number(value) end
 	},
 	{
 		name     = 'country',
-		default  = function(config_data) if config_data.gweather_data then return config_data.gweather_data.country end return nil end,
-		validate = function(value) return delightful_utils.config_string(value) end
+		default  = function(config_data) if config_data.location_data then return config_data.location_data.country end return nil end,
+		validate = function(value) return delightful.utils.config_string(value) end
 	},
 	{
 		name     = 'timezone',
-		default  = function(config_data) if config_data.gweather_data then return config_data.gweather_data.timezone end return nil end,
-		validate = function(value) return delightful_utils.config_string(value) end
+		default  = function(config_data) if config_data.location_data then return config_data.location_data.timezone end return nil end,
+		validate = function(value) return delightful.utils.config_string(value) end
 	},
 	{
 		name     = 'timezone_offset',
 		default  = function(config_data) if config_data.timezone then return weatherlib.calc_timezone_offset(config_data.timezone) end return nil end,
-		validate = function(value) return delightful_utils.config_int(value) end
+		validate = function(value) return delightful.utils.config_int(value) end
 	},
 	{
 		name     = 'font',
 		required = true,
 		default  = function(config_data) return beautiful.monospace_font or 'monospace' end,
-		validate = function(value) return delightful_utils.config_string(value) end
+		validate = function(value) return delightful.utils.config_string(value) end
 	},
 }
 
@@ -828,7 +839,7 @@ function update_data(station_index)
 		end
 	else
 		weather_data[station_index].summary.updated = 'N/A'
-		delightful_utils.print_error('weather', 'No timestamp in METAR data')
+		delightful.utils.print_error('weather', 'No timestamp in METAR data')
 	end
 	-- ..weather
 	if metar_data.weather then
@@ -852,11 +863,11 @@ function update_data(station_index)
 				weather_data[station_index].summary.weather = weather_string:gsub('%s*$', '')
 			else
 				weather_data[station_index].summary.weather = 'N/A'
-				delightful_utils.print_error('weather', 'No weather.phenomena in METAR data')
+				delightful.utils.print_error('weather', 'No weather.phenomena in METAR data')
 			end
 		else
 			weather_data[station_index].summary.weather = 'N/A'
-			delightful_utils.print_error('weather', 'No weather.intensity in METAR data')
+			delightful.utils.print_error('weather', 'No weather.intensity in METAR data')
 		end
 	else
 		weather_data[station_index].summary.weather = 'N/A'
@@ -873,17 +884,17 @@ function update_data(station_index)
 					end
 				else
 					weather_data[station_index].summary.sky = 'N/A'
-					delightful_utils.print_error('weather', 'No clouds[1].coverage in METAR data')
+					delightful.utils.print_error('weather', 'No clouds[1].coverage in METAR data')
 				end
 			else
 				weather_data[station_index].summary.sky = 'N/A'
-				delightful_utils.print_error('weather', 'No clouds in METAR data')
+				delightful.utils.print_error('weather', 'No clouds in METAR data')
 			end
 		end
 		weather_data[station_index].summary.sky = sky
 	else
 		weather_data[station_index].summary.sky = 'N/A'
-		delightful_utils.print_error('weather', 'No sky in METAR data')
+		delightful.utils.print_error('weather', 'No sky in METAR data')
 	end
 	-- ...feels like temperature
 	if metar_data.temperature
@@ -911,7 +922,7 @@ function update_data(station_index)
 		weather_data[station_index].summary.temperature = temperature
 	else
 		weather_data[station_index].summary.temperature = 'N/A'
-		delightful_utils.print_error('weather', 'No temperature in METAR data')
+		delightful.utils.print_error('weather', 'No temperature in METAR data')
 	end
 	-- ...dew point
 	if metar_data.dewpoint then
@@ -920,7 +931,7 @@ function update_data(station_index)
 				weather_data[station_index].display_units.temperature)
 	else
 		weather_data[station_index].summary.dewpoint = 'N/A'
-		delightful_utils.print_error('weather', 'No dewpoint in METAR data')
+		delightful.utils.print_error('weather', 'No dewpoint in METAR data')
 	end
 	-- ...humidity
 	if metar_data.temperature and metar_data.dewpoint then
@@ -946,15 +957,15 @@ function update_data(station_index)
 						gust)
 			else
 				weather_data[station_index].summary.wind = 'N/A'
-				delightful_utils.print_error('weather', 'No wind.speed in METAR data')
+				delightful.utils.print_error('weather', 'No wind.speed in METAR data')
 			end
 		else
 			weather_data[station_index].summary.wind = 'N/A'
-			delightful_utils.print_error('weather', 'No wind.direction in METAR data')
+			delightful.utils.print_error('weather', 'No wind.direction in METAR data')
 		end
 	else
 		weather_data[station_index].summary.wind = 'N/A'
-		delightful_utils.print_error('weather', 'No wind in METAR data')
+		delightful.utils.print_error('weather', 'No wind in METAR data')
 	end
 	-- ...pressure
 	if metar_data.pressure then
@@ -963,7 +974,7 @@ function update_data(station_index)
 				weather_data[station_index].display_units.pressure)
 	else
 		weather_data[station_index].summary.pressure = 'N/A'
-		delightful_utils.print_error('weather', 'No pressure in METAR data')
+		delightful.utils.print_error('weather', 'No pressure in METAR data')
 	end
 	-- ...visibility
 	if metar_data.visibility and type(metar_data.visibility) == 'table' and metar_data.visibility[1] then
@@ -979,7 +990,7 @@ function update_data(station_index)
 				weather_data[station_index].display_units.length)
 	else
 		weather_data[station_index].summary.visibility = 'N/A'
-		delightful_utils.print_error('weather', 'No visibility in METAR data')
+		delightful.utils.print_error('weather', 'No visibility in METAR data')
 	end
 
 	if weather_config[station_index].timezone_offset then
@@ -1022,7 +1033,7 @@ function update_data(station_index)
 				end
 			end
 		else
-			delightful_utils.print_error('weather', 'Failed to calculate sunrise and sunset')
+			delightful.utils.print_error('weather', 'Failed to calculate sunrise and sunset')
 		end
 	end
 
@@ -1051,19 +1062,19 @@ function update_icon(station_index)
 	-- 1st try: use sky icon
 	if weather_data[station_index].metar_data and weather_data[station_index].metar_data.sky then
 		local sky_key = string.format('weather_sky_%d', weather_data[station_index].metar_data.sky)
-		icon_file = delightful_utils.find_icon_file(icon_description, icon_files, sky_key)
+		icon_file = delightful.utils.find_icon_file(icon_description, icon_files, sky_key)
 	end
 	-- 2nd try: use clouds icon
 	if weather_data[station_index].metar_data and weather_data[station_index].metar_data.clouds and weather_data[station_index].metar_data.clouds[1] then
 		local clouds_key = string.format('weather_clouds_%d', weather_data[station_index].metar_data.clouds[1].coverage)
-		icon_file = delightful_utils.find_icon_file(icon_description, icon_files, clouds_key)
+		icon_file = delightful.utils.find_icon_file(icon_description, icon_files, clouds_key)
 	end
 	-- 3rd try: search weather for the icon
 	if weather_data[station_index].metar_data and weather_data[station_index].metar_data.weather then
 		local weather_key, weather_icon_file
 		if weather_data[station_index].metar_data.weather.descriptor then
 			weather_key = string.format('weather_descriptor_%d', weather_data[station_index].metar_data.weather.descriptor)
-			weather_icon_file = delightful_utils.find_icon_file(icon_description, icon_files, weather_key)
+			weather_icon_file = delightful.utils.find_icon_file(icon_description, icon_files, weather_key)
 		end
 		if not weather_icon_file or (weather_data[station_index].metar_data.weather.descriptor ~= metar.WEATHER_PHENOMENA.THUNDERSTORM) then
 			if weather_data[station_index].metar_data.weather.intensity == metar.WEATHER_INTENSITY.LIGHT and
@@ -1072,7 +1083,7 @@ function update_icon(station_index)
 			else
 				weather_key = string.format('weather_phenomena_%d', weather_data[station_index].metar_data.weather.phenomena)
 			end
-			weather_icon_file = delightful_utils.find_icon_file(icon_description, icon_files, weather_key)
+			weather_icon_file = delightful.utils.find_icon_file(icon_description, icon_files, weather_key)
 		end
 		if weather_icon_file then
 			icon_file = weather_icon_file
@@ -1085,14 +1096,14 @@ function update_icon(station_index)
 	-- 5th try: still no icon, use the not found icon
 	if not icon_file then
 		icon_file = icon_files.not_found
-		delightful_utils.print_error('weather', 'Weather icon not found')
+		delightful.utils.print_error('weather', 'Weather icon not found')
 	end
 	-- 6th try: replace clear and few clouds icons with night versions if sun is set
 	if icon_file and weather_data[station_index].daytime ~= nil and not weather_data[station_index].daytime then
 		for _, day_icon in pairs(night_icons) do
 			local night_icon = string.format('%s_night', day_icon)
-			delightful_utils.find_icon_file(icon_description, icon_files, day_icon)
-			delightful_utils.find_icon_file(icon_description, icon_files, night_icon)
+			delightful.utils.find_icon_file(icon_description, icon_files, day_icon)
+			delightful.utils.find_icon_file(icon_description, icon_files, night_icon)
 			if icon_file == icon_files[day_icon] and icon_files[night_icon] then
 				icon_file = icon_files[night_icon]
 				break
@@ -1103,13 +1114,13 @@ function update_icon(station_index)
 	if icon_file and weather_data[station_index].moonphase then
 		for _, day_icon in pairs(night_icons) do
 			local night_icon = string.format('%s_night', day_icon)
-			delightful_utils.find_icon_file(icon_description, icon_files, night_icon)
+			delightful.utils.find_icon_file(icon_description, icon_files, night_icon)
 			if icon_file == icon_files[night_icon] then
 				local night_icon_moon = string.format('%s_%03d', night_icon, weather_data[station_index].moonphase)
 				if weather_data[station_index].moonphase == 180 then
 					night_icon_moon = night_icon_moon:gsub('_180$', '')
 				end
-				delightful_utils.find_icon_file(icon_description, icon_files, night_icon_moon)
+				delightful.utils.find_icon_file(icon_description, icon_files, night_icon_moon)
 				if icon_files[night_icon_moon] then
 					icon_file = icon_files[night_icon_moon]
 					break
@@ -1121,7 +1132,7 @@ function update_icon(station_index)
 	if icon_file and
 			(not prev_icons[station_index] or prev_icons[station_index] ~= icon_file) then
 		prev_icons[station_index] = icon_file
-		icons[station_index].image = image(icon_file)
+		icons[station_index]:set_image(icon_file)
 	end
 end
 
@@ -1152,7 +1163,7 @@ end
 
 -- Configuration handler
 function handle_config(user_config)
-	local empty_config = delightful_utils.get_empty_config(config_description)
+	local empty_config = delightful.utils.get_empty_config(config_description)
 	if not user_config or #user_config == 0 then
 		table.insert(weather_data,   { error_string = 'No weather locations configured' })
 		table.insert(weather_config, empty_config)
@@ -1160,11 +1171,11 @@ function handle_config(user_config)
 	end
 	for station_index, user_config_data in pairs(user_config) do
 		weather_data[station_index] = {}
-		local config_data = delightful_utils.normalize_config(user_config_data, config_description)
-		local validation_errors = delightful_utils.validate_config(config_data, config_description)
+		local config_data = delightful.utils.normalize_config(user_config_data, config_description)
+		local validation_errors = delightful.utils.validate_config(config_data, config_description)
 		if not config_data.station_code then
 			if config_data.city then
-				if not config_data.gweather_data then
+				if not config_data.location_data then
 					if not validation_errors then
 						validation_errors = {}
 					end
@@ -1180,12 +1191,12 @@ function handle_config(user_config)
 		if validation_errors then
 			weather_data[station_index].error_string =
 					string.format('Configuration errors:\n%s',
-							delightful_utils.format_validation_errors(validation_errors))
+							delightful.utils.format_validation_errors(validation_errors))
 			weather_config[station_index] = empty_config
 			return
 		end
-		if not config_data.city and config_data.gweather_data then
-			config_data.city = config_data.gweather_data.city
+		if not config_data.city and config_data.location_data then
+			config_data.city = config_data.location_data.city
 		end
 		weather_config[station_index] = config_data
 	end
@@ -1195,8 +1206,8 @@ end
 function load(self, config)
 	handle_config(config)
 	icon_files = {}
-	delightful_utils.find_icon_file(icon_description, icon_files, 'error')
-	delightful_utils.find_icon_file(icon_description, icon_files, 'not_found')
+	delightful.utils.find_icon_file(icon_description, icon_files, 'error')
+	delightful.utils.find_icon_file(icon_description, icon_files, 'not_found')
 	local units_config_mapping = {
 		temperature_unit = 'temperature',
 		wind_speed_unit  = 'speed',
@@ -1224,7 +1235,7 @@ function load(self, config)
 
 		local icon
 		if not weather_config[station_index].no_icon and icon_files.not_found and icon_files.error then
-			icon = widget({ type = 'imagebox', name = 'weather_' .. station_index })
+			icon = wibox.widget.imagebox()
 		end
 
 		local popup_enter = function()
@@ -1242,18 +1253,18 @@ function load(self, config)
 		end
 		local popup_leave = function() naughty.destroy(data.popup) end
 
-		local widget = widget({ type = 'textbox'})
+		local widget = wibox.widget.textbox()
 
-		widget:add_signal('mouse::enter', popup_enter)
-		widget:add_signal('mouse::leave', popup_leave)
+		widget:connect_signal('mouse::enter', popup_enter)
+		widget:connect_signal('mouse::leave', popup_leave)
 		if icon then
-			icon:add_signal('mouse::enter', popup_enter)
-			icon:add_signal('mouse::leave', popup_leave)
+			icon:connect_signal('mouse::enter', popup_enter)
+			icon:connect_signal('mouse::leave', popup_leave)
 		end
 	
 		if weather_config[station_index].command then
-			local buttons = awful_button({}, 1, function()
-					awful_util.spawn(weather_config[station_index].command, true)
+			local buttons = awful.button({}, 1, function()
+					awful.util.spawn(weather_config[station_index].command, true)
 			end)
 			widget:buttons(buttons)
 			if icon then
@@ -1281,17 +1292,17 @@ local function vicious_worker(format, station_index)
 	error_status = string.format('%s!</span>', error_status);
 	if not weather_data[station_index] then
 		status = error_status
-		delightful_utils.print_error('weather', string.format('No weather_data[%d]', station_index))
+		delightful.utils.print_error('weather', string.format('No weather_data[%d]', station_index))
 	else
 		if weather_data[station_index].error_string then
 			status = '<span color="red"> !</span>';
-			delightful_utils.print_error('weather', weather_data[station_index].error_string)
+			delightful.utils.print_error('weather', weather_data[station_index].error_string)
 		elseif weather_data[station_index].status_string then
 			status = weather_data[station_index].status_string
 		else
 			weather_data[station_index].error_string = string.format('No weather_data[%s][status_string] or weather_data[%s][error_string]', station_index, station_index)
 			status = '<span color="red"> !</span>';
-			delightful_utils.print_error('weather', weather_data[station_index].error_string)
+			delightful.utils.print_error('weather', weather_data[station_index].error_string)
 		end
 	end
 	return status
@@ -1300,7 +1311,7 @@ end
 -- Helpers
 
 function pad_summary(line)
-	return delightful_utils.pad_string_with_spaces(line, 20)
+	return delightful.utils.pad_string_with_spaces(line, 20)
 end
 
 function calc_moon_phase(time, latitude)

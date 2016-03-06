@@ -1,7 +1,7 @@
 -------------------------------------------------------------------------------
 --
--- Memory widget for Awesome 3.4
--- Copyright (C) 2011 Tuomas Jormola <tj@solitudo.net>
+-- Memory widget for Awesome 3.5
+-- Copyright (C) 2011-2016 Tuomas Jormola <tj@solitudo.net>
 --
 -- Licensed under the terms of GNU General Public License Version 2.0.
 --
@@ -45,22 +45,18 @@
 --
 -------------------------------------------------------------------------------
 
-local awful_button      = require('awful.button')
-local awful_tooltip     = require('awful.tooltip')
-local awful_util        = require('awful.util')
-local awful_widget      = require('awful.widget')
-local image             = require('image')
-local widget            = require('widget')
+local awful      = require('awful')
+local wibox      = require('wibox')
 
-local delightful_utils  = require('delightful.utils')
-local vicious           = require('vicious')
+local delightful = { utils = require('delightful.utils') }
+local vicious    = require('vicious')
 
-local io                = { lines = io.lines }
-local math              = { floor = math.floor }
-local pairs             = pairs
-local string            = { format = string.format }
-local table             = { insert = table.insert }
-local tonumber          = tonumber
+local io       = { lines = io.lines }
+local math     = { floor = math.floor }
+local pairs    = pairs
+local string   = { format = string.format }
+local table    = { insert = table.insert }
+local tonumber = tonumber
 
 module('delightful.widgets.memory')
 
@@ -83,32 +79,32 @@ local has_swap = is_swap_available()
 local config_description = {
 	{
 		name     = 'command',
-		validate = function(value) return delightful_utils.config_string(value) end
+		validate = function(value) return delightful.utils.config_string(value) end
 	},
 	{
 		name     = 'no_icon',
-		validate = function(value) return delightful_utils.config_boolean(value) end
+		validate = function(value) return delightful.utils.config_boolean(value) end
 	},
 	{
 		name     = 'update_interval',
 		required = true,
 		default  = 10,
-		validate = function(value) return delightful_utils.config_int(value) end
+		validate = function(value) return delightful.utils.config_int(value) end
 	},
 }
 
 local icon_description = {
-	memory = { beautiful_name = 'delightful_mem', default_icon = function() return 'sensors-applet-memory' end },
+	memory = { beautiful_name = 'delightful_mem', default_icon = 'sensors-applet-memory' },
 }
 
 -- Configuration handler
 function handle_config(user_config)
-	local empty_config = delightful_utils.get_empty_config(config_description)
+	local empty_config = delightful.utils.get_empty_config(config_description)
 	if not user_config then
 		user_config = empty_config
 	end
-	local config_data = delightful_utils.normalize_config(user_config, config_description)
-	local validation_errors = delightful_utils.validate_config(config_data, config_description)
+	local config_data = delightful.utils.normalize_config(user_config, config_description)
+	local validation_errors = delightful.utils.validate_config(config_data, config_description)
 	if validation_errors then
 		fatal_error = 'Configuration errors: \n'
 		for error_index, error_entry in pairs(validation_errors) do
@@ -127,69 +123,66 @@ end
 function load(self, config)
 	handle_config(config)
 	if fatal_error then
-		delightful_utils.print_error('memory', fatal_error)
+		delightful.utils.print_error('memory', fatal_error)
 		return nil, nil
 	end
 	local icon
 	local icon_files
 	if not memory_config.no_icon then
-		icon_files = delightful_utils.find_icon_files(icon_description)
+		icon_files = delightful.utils.find_icon_files(icon_description)
 	end
 	local icon_file = icon_files and icon_files.memory
 	if icon_file then
-		local icon_data = image(icon_file)
-		if icon_data then
-			local buttons = awful_button({}, 1, function()
-					if not fatal_error and memory_config.command then
-						awful_util.spawn(memory_config.command, true)
-					end
-			end)
-			icon = widget({ type = 'imagebox', name = 'memory' })
-			icon:buttons(buttons)
-			icon.image = icon_data
-			icon_tooltip = awful_tooltip({ objects = { icon } })
-		end
+		local buttons = awful.button({}, 1, function()
+			if not fatal_error and memory_config.command then
+				awful.util.spawn(memory_config.command, true)
+			end
+		end)
+		icon = wibox.widget.imagebox()
+		icon:buttons(buttons)
+		icon:set_image(icon_file)
+		icon_tooltip = awful.tooltip({ objects = { icon } })
 	end
 	local icons = { icon }
 
-	local bg_color        = delightful_utils.find_theme_color({ 'bg_widget', 'bg_normal'                     })
-	local fg_color        = delightful_utils.find_theme_color({ 'fg_widget', 'fg_normal'                     })
-	local fg_center_color = delightful_utils.find_theme_color({ 'fg_center_widget', 'fg_widget', 'fg_normal' })
-	local fg_end_color    = delightful_utils.find_theme_color({ 'fg_end_widget', 'fg_widget', 'fg_normal'    })
+	local bg_color        = delightful.utils.find_theme_color({ 'bg_widget', 'bg_normal'                     })
+	local fg_color        = delightful.utils.find_theme_color({ 'fg_widget', 'fg_normal'                     })
+	local fg_center_color = delightful.utils.find_theme_color({ 'fg_center_widget', 'fg_widget', 'fg_normal' })
+	local fg_end_color    = delightful.utils.find_theme_color({ 'fg_end_widget', 'fg_widget', 'fg_normal'    })
 
-	local memory_widget = awful_widget.progressbar({ layout = awful_widget.layout.horizontal.rightleft })
+	local memory_widget = awful.widget.progressbar()
 	if bg_color then
 		memory_widget:set_background_color(bg_color)
 		memory_widget:set_border_color(bg_color)
 	end
-	if fg_color then
-		memory_widget:set_color(fg_color)
-	end
+	local color_args = fg_color
+	local width  = 8
+	local height = 19
 	if fg_color and fg_center_color and fg_end_color then
-		memory_widget:set_gradient_colors({ fg_color, fg_center_color, fg_end_color })
+		color_args = {
+			type = "linear",
+			from = { 0, 0 },
+			to = { width, height },
+			stops = {{ 0, fg_end_color }, { 0.5, fg_center_color }, { 1, fg_color }},
+		}
 	end
-	memory_widget:set_width(8)
-	memory_widget:set_height(19)
+	memory_widget:set_color(color_args)
+	memory_widget:set_width(width)
+	memory_widget:set_height(height)
 	memory_widget:set_vertical(true)
 	vicious.register(memory_widget, vicious.widgets.mem, vicious_formatter_memory, memory_config.update_interval)
 	local widgets = { memory_widget }
 
 
 	if has_swap then
-		table.insert(icons, '')
-		local swap_widget = awful_widget.progressbar({ layout = awful_widget.layout.horizontal.rightleft })
+		local swap_widget = awful.widget.progressbar()
 		if bg_color then
 			swap_widget:set_background_color(bg_color)
 			swap_widget:set_border_color(bg_color)
 		end
-		if fg_color then
-			swap_widget:set_color(fg_color)
-		end
-		if fg_color and fg_center_color and fg_end_color then
-			swap_widget:set_gradient_colors({ fg_color, fg_center_color, fg_end_color })
-		end
-		swap_widget:set_width(8)
-		swap_widget:set_height(19)
+		swap_widget:set_color(color_args)
+		swap_widget:set_width(width)
+		swap_widget:set_height(height)
 		swap_widget:set_vertical(true)
 		vicious.register(swap_widget, vicious.widgets.mem, vicious_formatter_swap, memory_config.update_interval)
 		table.insert(widgets, swap_widget)

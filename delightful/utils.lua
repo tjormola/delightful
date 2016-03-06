@@ -1,16 +1,17 @@
 -------------------------------------------------------------------------------
 --
--- Common utility routines for Delightful widgets for Awesome 3.4
--- Copyright (C) 2011 Tuomas Jormola <tj@solitudo.net>
+-- Common utility routines for Delightful widgets for Awesome 3.5
+-- Copyright (C) 2011-2016 Tuomas Jormola <tj@solitudo.net>
 --
 -- Licensed under the terms of GNU General Public License Version 2.0.
 --
 -------------------------------------------------------------------------------
 
-local awful_util        = require('awful.util')
+local awful             = require('awful')
 local beautiful         = require('beautiful')
+local wibox             = require('wibox')
 
-local freedesktop_utils = require('freedesktop.utils')
+local freedesktop       = { utils = require('freedesktop.utils') }
 
 local pairs             = pairs
 local print             = print
@@ -168,7 +169,7 @@ function config_file(value)
 	if type(value) ~= 'string' then
 		return false, 'invalid file name'
 	end
-	if not awful_util.file_readable(value) then
+	if not awful.util.file_readable(value) then
 		return false, 'file not readable'
 	end
 	return true
@@ -196,7 +197,6 @@ function find_icon_file(icon_description, icon_files, name)
 	if not info then
 		return
 	end
-	print(string.format("find_icon_file:%s", name))
 	-- try icon defined in the Awesome theme
 	if beautiful[info.beautiful_name] then
 		icon_files[name] = beautiful[info.beautiful_name]
@@ -208,7 +208,7 @@ function find_icon_file(icon_description, icon_files, name)
 		else
 			default_icon = info.default_icon
 		end
-		icon_files[name] = freedesktop_utils.lookup_icon({ icon = default_icon })
+		icon_files[name] = freedesktop.utils.lookup_icon({ icon = default_icon })
 	end
 	return icon_files[name]
 end
@@ -218,14 +218,27 @@ function find_icon_files(icon_description)
 	if not icon_description then
 		return
 	end
-	-- Ensure GNOME icon theme is available
-	local previous_icon_theme = freedesktop_utils.icon_theme
-	local have_gnome_icon_theme = false
-	if freedesktop_utils.icon_theme then
-		have_gnome_icon_theme = freedesktop_utils.icon_theme == 'gnome'
+	-- Ensure system icon themes are available
+	if freedesktop.utils.icon_theme then
+		if type(freedesktop.utils.icon_theme) ~= 'table' then
+			freedesktop.utils.icon_theme = { freedesktop.utils.icon_theme }
+		end
+	else
+		freedesktop.utils.icon_theme = {}
 	end
-	if not have_gnome_icon_theme then
-		freedesktop_utils.icon_theme = 'gnome'
+	local system_icon_themes = { 'Adwaita', 'gnome' }
+	local has_system_theme = {}
+	for _, theme_name in pairs(freedesktop.utils.icon_theme) do
+		for _, system_theme_name in pairs(system_icon_themes) do
+			if theme_name == system_theme_name then
+				has_system_theme[theme_name] = true
+			end
+		end
+	end
+	for _, system_theme_name in pairs(system_icon_themes) do
+		if not has_system_theme[system_theme_name] then
+			table.insert(freedesktop.utils.icon_theme, system_theme_name)
+		end
 	end
 	-- Load icons
 	local icon_files = {}
@@ -258,7 +271,7 @@ function pad_string_with_spaces(s, width)
 	end
 	local s_head = s:sub(1, width)
 	local space = ' '
-	return string.format('%s%s', awful_util.escape(s_head), space:rep(width - #s_head))
+	return string.format('%s%s', awful.util.escape(s_head), space:rep(width - #s_head))
 end
 
 -- print an error message
@@ -275,4 +288,31 @@ function print_error(ident, error_string)
 		text = string.format('[%s] ', ident)
 	end
 	print(string.format('%s%s', text, error_string))
+end
+
+function fill_wibox_container(delightful_widgets, delightful_config, wibox_container)
+	if not delightful_widgets or not wibox_container then
+		return
+	end
+	local spacer = wibox.widget.textbox()
+	spacer:set_text(' ')
+	for i, delightful_widget in pairs(delightful_widgets) do
+		local config = delightful_config and delightful_config[delightful_widget]
+		local widgets, icons = delightful_widget:load(config)
+		if not widgets then
+			widgets = {}
+		end
+		for widget_index, widget in pairs(widgets) do
+			if i < #delightful_widgets then
+				wibox_container:add(spacer)
+			end
+			if icons and icons[widget_index] then
+				wibox_container:add(icons[widget_index])
+			end
+			wibox_container:add(widget)
+			if i < #delightful_widgets then
+				wibox_container:add(spacer)
+			end
+		end
+	end
 end

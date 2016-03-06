@@ -1,7 +1,7 @@
 -------------------------------------------------------------------------------
 --
--- Net widget for Awesome 3.4
--- Copyright (C) 2011 Tuomas Jormola <tj@solitudo.net>
+-- Net widget for Awesome 3.5
+-- Copyright (C) 2011-2016 Tuomas Jormola <tj@solitudo.net>
 --
 -- Licensed under the terms of GNU General Public License Version 2.0.
 --
@@ -35,7 +35,7 @@
 -- -- network devices to exclude from monitoring by default. It uses
 -- -- the same format as previous option (a list of Lua patterns).
 -- -- Default is
--- -- { '^lo$', '^tun%d*$', '^tap%d*$', '^pan%d+$', '^br%d+$', '^vm%d+$' }
+-- -- { '^lo$', '^tun%d*$', '^tap%d*$', '^pan%d+$', '^br.+$', '^vm%d+$', 'vnet%d+$' }
 --        excluded_devices_default = { '^moredev%d+$' },
 -- -- A list of Lua patterns that define which network devices are considered
 -- -- wireless devices and thus the widget displays the wireless device icon.
@@ -73,19 +73,16 @@
 --
 -------------------------------------------------------------------------------
 
-local awful_button      = require('awful.button')
-local awful_tooltip     = require('awful.tooltip')
-local awful_util        = require('awful.util')
-local image             = require('image')
-local widget            = require('widget')
+local awful      = require('awful')
+local wibox      = require('wibox')
 
-local delightful_utils  = require('delightful.utils')
-local vicious           = require('vicious')
+local delightful = { utils = require('delightful.utils') }
+local vicious    = require('vicious')
 
-local io                = io
-local pairs             = pairs
-local string            = { format = string.format }
-local table             = { insert = table.insert }
+local io     = io
+local pairs  = pairs
+local string = { format = string.format }
+local table  = { insert = table.insert }
 
 module('delightful.widgets.network')
 
@@ -98,60 +95,60 @@ local config_description = {
 		name     = 'excluded_devices',
 		require  = true,
 		default  = {},
-		coerce   = function(value) return delightful_utils.coerce_table(value) end,
-		validate = function(value) return delightful_utils.config_table(value) end
+		coerce   = function(value) return delightful.utils.coerce_table(value) end,
+		validate = function(value) return delightful.utils.config_table(value) end
 	},
 	{
 		name     = 'excluded_devices_default',
 		required = true,
-		default  = { '^lo$', 'dummy%d*$', '^tun%d*$', '^tap%d*$', '^pan%d+$', '^br%d+$', '^vm%d+$' },
-		coerce   = function(value) return delightful_utils.coerce_table(value) end,
-		validate = function(value) return delightful_utils.config_table(value) end
+		default  = { '^lo$', 'dummy%d*$', '^tun%d*$', '^tap%d*$', '^pan%d+$', '^br.+$', '^vm%d+$', '^vnet%d+$' },
+		coerce   = function(value) return delightful.utils.coerce_table(value) end,
+		validate = function(value) return delightful.utils.config_table(value) end
 	},
 	{
 		name     = 'wireless_devices',
 		required = true,
 		default  = { '^wlan%d*', '^wifi%d*', '^ath%d+$', '^ra%d+$' },
-		coerce   = function(value) return delightful_utils.coerce_table(value) end,
-		validate = function(value) return delightful_utils.config_table(value) end
+		coerce   = function(value) return delightful.utils.coerce_table(value) end,
+		validate = function(value) return delightful.utils.config_table(value) end
 	},
 	{
 		name     = 'dialup_devices',
 		required = true,
 		default  = { '^ppp%d+' },
-		coerce   = function(value) return delightful_utils.coerce_table(value) end,
-		validate = function(value) return delightful_utils.config_table(value) end
+		coerce   = function(value) return delightful.utils.coerce_table(value) end,
+		validate = function(value) return delightful.utils.config_table(value) end
 	},
 	{
 		name     = 'command',
-		validate = function(value) return delightful_utils.config_string(value) end
+		validate = function(value) return delightful.utils.config_string(value) end
 	},
 	{
 		name     = 'no_icon',
-		validate = function(value) return delightful_utils.config_boolean(value) end
+		validate = function(value) return delightful.utils.config_boolean(value) end
 	},
 	{
 		name     = 'update_interval',
 		required = true,
 		default  = 3,
-		validate = function(value) return delightful_utils.config_int(value) end
+		validate = function(value) return delightful.utils.config_int(value) end
 	},
 }
 
 local icon_description = {
-	wired    = { beautiful_name = 'delightful_network_wired',    default_icon = function() return 'network-wired' end    },
-	wireless = { beautiful_name = 'delightful_network_wireless', default_icon = function() return 'network-wireless' end },
-	dialup   = { beautiful_name = 'delightful_network_dialup',   default_icon = function() return 'modem' end            },
+	wired    = { beautiful_name = 'delightful_network_wired',    default_icon = 'network-wired'    },
+	wireless = { beautiful_name = 'delightful_network_wireless', default_icon = 'network-wireless' },
+	dialup   = { beautiful_name = 'delightful_network_dialup',   default_icon = 'modem'            },
 }
 
 -- Configuration handler
 function handle_config(user_config)
-	local empty_config = delightful_utils.get_empty_config(config_description)
+	local empty_config = delightful.utils.get_empty_config(config_description)
 	if not user_config then
 		user_config = empty_config
 	end
-	local config_data = delightful_utils.normalize_config(user_config, config_description)
-	local validation_errors = delightful_utils.validate_config(config_data, config_description)
+	local config_data = delightful.utils.normalize_config(user_config, config_description)
+	local validation_errors = delightful.utils.validate_config(config_data, config_description)
 	if validation_errors then
 		fatal_error = 'Configuration errors: \n'
 		for error_index, error_entry in pairs(validation_errors) do
@@ -170,18 +167,18 @@ end
 function load(self, config)
 	handle_config(config)
 	if fatal_error then
-		delightful_utils.print_error('net', fatal_error)
+		delightful.utils.print_error('net', fatal_error)
 		return nil, nil
 	end
 	if not network_config.no_icon then
-		icon_files = delightful_utils.find_icon_files(icon_description)
+		icon_files = delightful.utils.find_icon_files(icon_description)
 	end
 	local devices = {}
 	for line in io.lines('/proc/net/dev') do
 		local device = line:match('^[%s]?[%s]?[%s]?[%s]?([%w]+):')
 		if device then
 			local exclude = false
-			for _, excluded_device in pairs(awful_util.table.join(network_config.excluded_devices, network_config.excluded_devices_default)) do
+			for _, excluded_device in pairs(awful.util.table.join(network_config.excluded_devices, network_config.excluded_devices_default)) do
 				if device:find(excluded_device) then
 					exclude = true
 					break
@@ -193,8 +190,8 @@ function load(self, config)
 		end
 	end
 
-	local color_download = delightful_utils.find_theme_color({ 'fg_end_widget' })
-	local color_upload   = delightful_utils.find_theme_color({ 'fg_widget'     })
+	local color_download = delightful.utils.find_theme_color({ 'fg_end_widget' })
+	local color_upload   = delightful.utils.find_theme_color({ 'fg_widget'     })
 
 	local widgets
 	local icons
@@ -218,26 +215,23 @@ function load(self, config)
 		end
 
 		if icon_file then
-			local icon_data = image(icon_file)
-			if icon_data then
-				local buttons = awful_button({}, 1, function()
-						if not fatal_error and network_config.command then
-							awful_util.spawn(network_config.command, true)
-						end
-				end)
-				icon = widget({ type = 'imagebox', name = 'net' .. device .. 'icon' })
-				icon:buttons(buttons)
-				icon.image = icon_data
-				local tooltip = awful_tooltip({ objects = { icon } })
-				tooltip:set_text(' Download and upload speed \n of the network device ' .. device .. ' \n in kilobytes per second ')
-				if not icons then
-					icons = {}
+			local buttons = awful.button({}, 1, function()
+				if not fatal_error and network_config.command then
+					awful.util.spawn(network_config.command, true)
 				end
-				table.insert(icons, icon)
+			end)
+			icon = wibox.widget.imagebox()
+			icon:buttons(buttons)
+			icon:set_image(icon_file)
+			local tooltip = awful.tooltip({ objects = { icon } })
+			tooltip:set_text(' Download and upload speed \n of the network device ' .. device .. ' \n in kilobytes per second ')
+			if not icons then
+				icons = {}
 			end
+			table.insert(icons, icon)
 		end
 
-		local net_widget = widget({ type = 'textbox', name = 'net' .. device .. 'widget' })
+		local net_widget = wibox.widget.textbox()
 		local widget_text = '↓'
 		local close_span = false
 		if color_download then

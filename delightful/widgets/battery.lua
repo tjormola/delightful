@@ -1,7 +1,7 @@
 -------------------------------------------------------------------------------
 --
--- Battery widget for Awesome 3.4
--- Copyright (C) 2011 Tuomas Jormola <tj@solitudo.net>
+-- Battery widget for Awesome 3.5
+-- Copyright (C) 2011-2016 Tuomas Jormola <tj@solitudo.net>
 --
 -- Licensed under the terms of GNU General Public License Version 2.0.
 --
@@ -24,7 +24,7 @@
 -- {
 -- -- Name of the battery. Matches a file under the directory
 -- -- /sys/class/power_supply/ and typically is "BATn" where n
--- -- is a number, most likely 1. 'BAT1' by default.
+-- -- is a number, most likely 0. 'BAT0' by default.
 --	      battery         = 'BAT2',
 -- -- Command to execute when left-clicking the widget icon.
 -- -- Empty by default.
@@ -54,18 +54,14 @@
 --
 -------------------------------------------------------------------------------
 
-local awful_button      = require('awful.button')
-local awful_tooltip     = require('awful.tooltip')
-local awful_util        = require('awful.util')
-local awful_widget      = require('awful.widget')
-local image             = require('image')
-local widget            = require('widget')
+local awful      = require('awful')
+local wibox      = require('wibox')
 
-local delightful_utils  = require('delightful.utils')
-local vicious           = require('vicious')
+local delightful = { utils = require('delightful.utils') }
+local vicious    = require('vicious')
 
-local pairs             = pairs
-local string            = { format = string.format }
+local pairs  = pairs
+local string = { format = string.format }
 
 module('delightful.widgets.battery')
 
@@ -80,14 +76,14 @@ local config_description = {
 	{
 		name     = 'battery',
 		required = true,
-		default  = 'BAT1',
+		default  = 'BAT0',
 		validate = function(value)
-			local status, errors = delightful_utils.config_string(value)
+			local status, errors = delightful.utils.config_string(value)
 			if not status then
 				return status, errors
 			end
 			local battery_path = string.format('/sys/class/power_supply/%s/status', value)
-			if not awful_util.file_readable(battery_path) then
+			if not awful.util.file_readable(battery_path) then
 				return false, string.format('Battery not found: %s', value)
 			end
 			return true
@@ -96,37 +92,37 @@ local config_description = {
 	{
 		name     = 'command',
 		default  = 'gnome-power-preferences',
-		validate = function(value) return delightful_utils.config_string(value) end
+		validate = function(value) return delightful.utils.config_string(value) end
 	},
 	{
 		name     = 'no_icon',
-		validate = function(value) return delightful_utils.config_boolean(value) end
+		validate = function(value) return delightful.utils.config_boolean(value) end
 	},
 	{
 		name     = 'update_interval',
 		required = true,
 		default  = 20,
-		validate = function(value) return delightful_utils.config_int(value) end
+		validate = function(value) return delightful.utils.config_int(value) end
 	},
 }
 
 local icon_description = {
-	battery_ac     = { beautiful_name = 'delightful_battery_ac',     default_icon = function() return 'battery-good-charging' end },
-	battery_full   = { beautiful_name = 'delightful_battery_full',   default_icon = function() return 'battery-good' end    },
-	battery_medium = { beautiful_name = 'delightful_battery_medium', default_icon = function() return 'battery-low' end     },
-	battery_low    = { beautiful_name = 'delightful_battery_low',    default_icon = function() return 'battery-caution' end },
-	not_found      = { beautiful_name = 'delightful_not_found',      default_icon = function() return 'dialog-question' end },
-	error          = { beautiful_name = 'delightful_error',          default_icon = function() return 'dialog-error' end    },
+	battery_ac     = { beautiful_name = 'delightful_battery_ac',     default_icon = 'battery-good-charging' },
+	battery_full   = { beautiful_name = 'delightful_battery_full',   default_icon = 'battery-good'          },
+	battery_medium = { beautiful_name = 'delightful_battery_medium', default_icon = 'battery-low'           },
+	battery_low    = { beautiful_name = 'delightful_battery_low',    default_icon = 'battery-caution'       },
+	not_found      = { beautiful_name = 'delightful_not_found',      default_icon = 'dialog-question'       },
+	error          = { beautiful_name = 'delightful_error',          default_icon = 'dialog-error'          },
 }
 
 -- Configuration handler
 function handle_config(user_config)
-	local empty_config = delightful_utils.get_empty_config(config_description)
+	local empty_config = delightful.utils.get_empty_config(config_description)
 	if not user_config then
 		user_config = empty_config
 	end
-	local config_data = delightful_utils.normalize_config(user_config, config_description)
-	local validation_errors = delightful_utils.validate_config(config_data, config_description)
+	local config_data = delightful.utils.normalize_config(user_config, config_description)
+	local validation_errors = delightful.utils.validate_config(config_data, config_description)
 	if validation_errors then
 		fatal_error = 'Configuration errors: \n'
 		for error_index, error_entry in pairs(validation_errors) do
@@ -145,41 +141,47 @@ end
 function load(self, config)
 	handle_config(config)
 	if fatal_error then
-		delightful_utils.print_error('battery', fatal_error)
+		delightful.utils.print_error('battery', fatal_error)
 		return nil, nil
 	end
 	if not battery_config.no_icon then
-		icon_files = delightful_utils.find_icon_files(icon_description)
+		icon_files = delightful.utils.find_icon_files(icon_description)
 	end
 	if icon_files.battery_ac and icon_files.battery_full and icon_files.battery_medium and icon_files.battery_low and icon_files.not_found and icon_files.error then
-		local buttons = awful_button({}, 1, function()
+		local buttons = awful.button({}, 1, function()
 				if not fatal_error and battery_config.command then
-					awful_util.spawn(battery_config.command, true)
+					awful.util.spawn(battery_config.command, true)
 				end
 		end)
-		icon = widget({ type = 'imagebox', name = 'battery' })
+		icon = wibox.widget.imagebox()
 		icon:buttons(buttons)
-		icon_tooltip = awful_tooltip({ objects = { icon } })
+		icon_tooltip = awful.tooltip({ objects = { icon } })
 	end
 
-	local bg_color        = delightful_utils.find_theme_color({ 'bg_widget', 'bg_normal'                     })
-	local fg_color        = delightful_utils.find_theme_color({ 'fg_widget', 'fg_normal'                     })
-	local fg_center_color = delightful_utils.find_theme_color({ 'fg_center_widget', 'fg_widget', 'fg_normal' })
-	local fg_end_color    = delightful_utils.find_theme_color({ 'fg_end_widget', 'fg_widget', 'fg_normal'    })
+	local bg_color        = delightful.utils.find_theme_color({ 'bg_widget', 'bg_normal'                     })
+	local fg_color        = delightful.utils.find_theme_color({ 'fg_widget', 'fg_normal'                     })
+	local fg_center_color = delightful.utils.find_theme_color({ 'fg_center_widget', 'fg_widget', 'fg_normal' })
+	local fg_end_color    = delightful.utils.find_theme_color({ 'fg_end_widget', 'fg_widget', 'fg_normal'    })
 
-	local battery_widget = awful_widget.progressbar({ layout = awful_widget.layout.horizontal.rightleft })
+	local battery_widget = awful.widget.progressbar()
 	if bg_color then
 		battery_widget:set_border_color(bg_color)
 		battery_widget:set_background_color(bg_color)
 	end
-	if fg_color then
-		battery_widget:set_color(fg_color)
-	end
+	local color_args = fg_color
+	local width  = 8
+	local height = 19
 	if fg_color and fg_center_color and fg_end_color then
-		battery_widget:set_gradient_colors({ fg_color, fg_center_color, fg_end_color })
+		color_args = {
+			type = "linear",
+			from = { 0, 0 },
+			to = { width, height },
+			stops = {{ 0, fg_end_color }, { 0.5, fg_center_color }, { 1, fg_color }},
+		}
 	end
-	battery_widget:set_width(8)
-	battery_widget:set_height(19)
+	battery_widget:set_color(color_args)
+	battery_widget:set_width(width)
+	battery_widget:set_height(height)
 	battery_widget:set_vertical(true)
 	vicious.register(battery_widget, vicious.widgets.bat, vicious_formatter, battery_config.update_interval, battery_config.battery)
 
@@ -224,7 +226,7 @@ function vicious_formatter(widget, data)
 		end
 		if icon_file and (not prev_icon or prev_icon ~= icon_file) then
 			prev_icon = icon_file
-			icon.image = image(icon_file)
+			icon:set_image(icon_file)
 		end
 	end
 	if fatal_error then

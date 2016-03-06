@@ -1,7 +1,7 @@
 -------------------------------------------------------------------------------
 --
--- IMAP widget for Awesome 3.4
--- Copyright (C) 2011 Tuomas Jormola <tj@solitudo.net>
+-- IMAP widget for Awesome 3.5
+-- Copyright (C) 2011-2016 Tuomas Jormola <tj@solitudo.net>
 --
 -- Licensed under the terms of GNU General Public License Version 2.0.
 --
@@ -83,26 +83,24 @@
 --
 -------------------------------------------------------------------------------
 
-local awful_button      = require('awful.button')
-local awful_util        = require('awful.util')
-local beautiful         = require('beautiful')
-local image             = require('image')
-local naughty           = require('naughty')
-local widget            = require('widget')
+local awful      = require('awful')
+local beautiful  = require('beautiful')
+local naughty    = require('naughty')
+local wibox      = require('wibox')
 
-local delightful_utils  = require('delightful.utils')
-local vicious           = require('vicious')
+local delightful = { utils = require('delightful.utils') }
+local vicious    = require('vicious')
 
-local imap              = require('imap')
+local imap       = require('imap')
 
-local capi              = { mouse = mouse }
+local capi       = { mouse = mouse }
 
-local pairs             = pairs
-local setmetatable      = setmetatable
-local string            = { format = string.format }
-local table             = { insert = table.insert, remove = table.remove, sort = table.sort }
-local tostring          = tostring
-local type              = type
+local pairs        = pairs
+local setmetatable = setmetatable
+local string       = { format = string.format }
+local table        = { insert = table.insert, remove = table.remove, sort = table.sort }
+local tostring     = tostring
+local type         = type
 
 module('delightful.widgets.imap')
 
@@ -118,23 +116,23 @@ local config_description = {
 	{
 		name     = 'user',
 		required = true,
-		validate = function(value) return delightful_utils.config_string(value) end
+		validate = function(value) return delightful.utils.config_string(value) end
 	},
 	{
 		name     = 'password',
 		required = true,
-		validate = function(value) return delightful_utils.config_string(value) end
+		validate = function(value) return delightful.utils.config_string(value) end
 	},
 	{
 		name     = 'host',
 		required = true,
-		validate = function(value) return delightful_utils.config_string(value) end
+		validate = function(value) return delightful.utils.config_string(value) end
 	},
 	{
 		name     = 'ssl',
 		required = true,
 		default  = false,
-		validate = function(value) return delightful_utils.config_boolean(value) end
+		validate = function(value) return delightful.utils.config_boolean(value) end
 	},
 	{
 		name     = 'ssl_string',
@@ -146,55 +144,55 @@ local config_description = {
 		name     = 'port',
 		required = true,
 		default  = function(config_data) if config_data.ssl then return 993 else return 143 end end,
-		validate = function(value) return delightful_utils.config_int(value) end
+		validate = function(value) return delightful.utils.config_int(value) end
 	},
 	{
 		name     = 'mailboxes',
 		required = true,
 		default  = 'INBOX',
-		coerce   = function(value) return delightful_utils.coerce_table(value) end,
-		validate = function(value) return delightful_utils.config_table(value) end
+		coerce   = function(value) return delightful.utils.coerce_table(value) end,
+		validate = function(value) return delightful.utils.config_table(value) end
 	},
 	{
 		name     = 'show_mail_count',
 		required = true,
 		default  = 5,
-		validate = function(value) return delightful_utils.config_int(value) end
+		validate = function(value) return delightful.utils.config_int(value) end
 	},
 	{
 		name     = 'command',
 		default  = function(config_data) if mailer_cmd then return mailer_cmd end end,
-		validate = function(value) return delightful_utils.config_string(value) end
+		validate = function(value) return delightful.utils.config_string(value) end
 	},
 	{
 		name     = 'no_icon',
-		validate = function(value) return delightful_utils.config_boolean(value) end
+		validate = function(value) return delightful.utils.config_boolean(value) end
 	},
 	{
 		name     = 'update_interval',
 		required = true,
 		default  = 5 * 60,
-		validate = function(value) return delightful_utils.config_int(value) end
+		validate = function(value) return delightful.utils.config_int(value) end
 	},
 	{
 		name     = 'notification_delay',
 		required = true,
 		default  = 10,
-		validate = function(value) return delightful_utils.config_int(value) end
+		validate = function(value) return delightful.utils.config_int(value) end
 	},
 	-- User is not supposed to supply configuration of these settings
 	{
 		name     = 'font',
 		required = true,
 		default  = function(config_data) return beautiful.monospace_font or 'monospace' end,
-		validate = function(value) return delightful_utils.config_string(value) end,
+		validate = function(value) return delightful.utils.config_string(value) end,
 	},
 }
 
 local icon_description = {
-	read   = { beautiful_name = 'delightful_imap_mail_read',   default_icon = function() return 'mail-read' end   },
-	unread = { beautiful_name = 'delightful_imap_mail_unread', default_icon = function() return 'mail-unread' end },
-	error  = { beautiful_name = 'delightful_error',            default_icon = function() return 'dialog-error' end             },
+	read   = { beautiful_name = 'delightful_imap_mail_read',   default_icon = 'mail-read'    },
+	unread = { beautiful_name = 'delightful_imap_mail_unread', default_icon = 'mail-unread'  },
+	error  = { beautiful_name = 'delightful_error',            default_icon = 'dialog-error' },
 }
 
 -- Poll the mailbox
@@ -228,7 +226,7 @@ function update_data(imap_index)
 						end
 						table.sort(unread_message_ids)
 						imap_data[imap_index].mailboxes[mailbox_index].messages = {}
-						for unread_message_index, unread_message_id in pairs(awful_util.table.reverse(unread_message_ids)) do
+						for unread_message_index, unread_message_id in pairs(awful.util.table.reverse(unread_message_ids)) do
 							imap_data[imap_index].mailboxes[mailbox_index].messages[unread_message_index] =
 									unread_messages[unread_message_id]
 							imap_data[imap_index].mailboxes[mailbox_index].messages[unread_message_index].uid =
@@ -310,7 +308,7 @@ function update_icon(imap_index)
 	if icon_file and
 			(not prev_icons[imap_index] or prev_icons[imap_index] ~= icon_file) then
 		prev_icons[imap_index] = icon_file
-		icons[imap_index].image = image(icon_file)
+		icons[imap_index]:set_image(icon_file)
 	end
 end
 
@@ -395,7 +393,7 @@ end
 
 -- Configuration handler
 function handle_config(user_config)
-	local empty_config = delightful_utils.get_empty_config(config_description)
+	local empty_config = delightful.utils.get_empty_config(config_description)
 	if not user_config or #user_config == 0 then
 		table.insert(imap_data,   { error_string = 'No IMAP configuration' })
 		table.insert(imap_config, empty_config)
@@ -403,12 +401,12 @@ function handle_config(user_config)
 	end
 	for imap_index, user_config_data in pairs(user_config) do
 		imap_data[imap_index] = {}
-		local config_data = delightful_utils.normalize_config(user_config_data, config_description)
-		local validation_errors = delightful_utils.validate_config(config_data, config_description)
+		local config_data = delightful.utils.normalize_config(user_config_data, config_description)
+		local validation_errors = delightful.utils.validate_config(config_data, config_description)
 		if validation_errors then
 			imap_data[imap_index].error_string =
 					string.format('Configuration errors:\n%s',
-							delightful_utils.format_validation_errors(validation_errors))
+							delightful.utils.format_validation_errors(validation_errors))
 			imap_config[imap_index] = empty_config
 			return
 		end
@@ -445,11 +443,11 @@ end
 -- Initalization
 function load(self, config)
 	handle_config(config)
-	icon_files = delightful_utils.find_icon_files(icon_description)
+	icon_files = delightful.utils.find_icon_files(icon_description)
 	for imap_index, data in pairs(imap_data) do
 		local icon
 		if not imap_config[imap_index].no_icon and icon_files.read and icon_files.unread and icon_files.error then
-			icon = widget({ type = 'imagebox', name = 'imap_' .. imap_index })
+			icon = wibox.widget.imagebox()
 		end
 
 		local popup_enter = function()
@@ -469,18 +467,18 @@ function load(self, config)
 		end
 		local popup_leave = function() naughty.destroy(data.popup) end
 
-		local widget = widget({ type = 'textbox'})
+		local widget = wibox.widget.textbox()
 
-		widget:add_signal('mouse::enter', popup_enter)
-		widget:add_signal('mouse::leave', popup_leave)
+		widget:connect_signal('mouse::enter', popup_enter)
+		widget:connect_signal('mouse::leave', popup_leave)
 		if icon then
-			icon:add_signal('mouse::enter', popup_enter)
-			icon:add_signal('mouse::leave', popup_leave)
+			icon:connect_signal('mouse::enter', popup_enter)
+			icon:connect_signal('mouse::leave', popup_leave)
 		end
 
 		if imap_config[imap_index].command then
-			local buttons = awful_button({}, 1, function()
-					awful_util.spawn(imap_config[imap_index].command, true)
+			local buttons = awful.button({}, 1, function()
+					awful.util.spawn(imap_config[imap_index].command, true)
 			end)
 			widget:buttons(buttons)
 			if icon then
@@ -509,23 +507,23 @@ function vicious_worker(format, imap_index)
 	error_status = string.format('%s!</span>', error_status);
 	if not imap_data[imap_index] then
 		status = error_status
-		delightful_utils.print_error('imap', string.format('No imap_data[%d]', imap_index))
+		delightful.utils.print_error('imap', string.format('No imap_data[%d]', imap_index))
 	else
 		if imap_data[imap_index].error_string then
 			status = '<span color="red"> !</span>';
-			delightful_utils.print_error('imap', imap_data[imap_index].error_string)
+			delightful.utils.print_error('imap', imap_data[imap_index].error_string)
 		elseif imap_data[imap_index].status_string then
 			status = imap_data[imap_index].status_string
 		else
 			imap_data[imap_index].error_string = string.format('No imap_data[%s][status_string] or imap_data[%s][error_string]', imap_index, imap_index)
 			status = '<span color="red"> !</span>';
-			delightful_utils.print_error('imap', imap_data[imap_index].error_string)
+			delightful.utils.print_error('imap', imap_data[imap_index].error_string)
 		end
 	end
 	if imap_data[imap_index].mailboxes then
 		for _, mailbox in pairs(imap_data[imap_index].mailboxes) do
 			if mailbox.error_string then
-				delightful_utils.print_error('imap', mailbox.error_string)
+				delightful.utils.print_error('imap', mailbox.error_string)
 			end
 		end
 	end
@@ -557,7 +555,7 @@ function imap_url(data)
 end
 
 function pad_message_detail(line)
-	return delightful_utils.pad_string_with_spaces(line, 48)
+	return delightful.utils.pad_string_with_spaces(line, 48)
 end
 
 setmetatable(_M, { __call = function(_, ...) return vicious_worker(...) end })

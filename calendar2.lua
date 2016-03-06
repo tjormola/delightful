@@ -64,24 +64,29 @@ function switchNaughtyMonth(switchMonths)
         if (#calendar < 3) then return end
         local swMonths = switchMonths or 1
         calendar[1] = calendar[1] + swMonths
-        calendar[3].box.widgets[2].text = string.format('<span font_desc="%s">%s</span>', "monospace", displayMonth(calendar[1], calendar[2], 2))
+        if calendar[3].box.visible then
+            naughty.destroy(calendar[3])
+        end
+        calendar[3] = getWidget(calendar[1], calendar[2])
 end
 
-function addCalendarToWidget(mywidget, custom_current_day_format)
-  if custom_current_day_format then current_day_format = custom_current_day_format end
-
-  mywidget:add_signal('mouse::enter', function ()
-        local month, year = os.date('%m'), os.date('%Y')
-        calendar = { month, year,
-        naughty.notify({
+function getWidget(month, year)
+        return naughty.notify({
                 text = string.format('<span font_desc="%s">%s</span>', "monospace", displayMonth(month, year, 2)),
                 timeout = 0,
                 hover_timeout = 0.5,
                 screen = capi.mouse.screen
         })
-  }
+end
+
+function addCalendarToWidget(mywidget, custom_current_day_format)
+  if custom_current_day_format then current_day_format = custom_current_day_format end
+
+  mywidget:connect_signal('mouse::enter', function ()
+        local month, year = os.date('%m'), os.date('%Y')
+        calendar = { month, year, getWidget(month, year) }
   end)
-  mywidget:add_signal('mouse::leave', function () naughty.destroy(calendar[3]) end)
+  mywidget:connect_signal('mouse::leave', function () naughty.destroy(calendar[3]) end)
 
   mywidget:buttons(awful.util.table.join(
     awful.button({ }, 1, function()

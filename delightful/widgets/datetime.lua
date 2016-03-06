@@ -1,7 +1,7 @@
 -------------------------------------------------------------------------------
 --
--- Date and time widget with calendar popup display for Awesome 3.4
--- Copyright (C) 2011 Tuomas Jormola <tj@solitudo.net>
+-- Date and time widget with calendar popup display for Awesome 3.5
+-- Copyright (C) 2011-2016 Tuomas Jormola <tj@solitudo.net>
 --
 -- Licensed under the terms of GNU General Public License Version 2.0.
 --
@@ -24,17 +24,17 @@
 --
 -------------------------------------------------------------------------------
 
-local awful_widget = require('awful.widget')
-local beautiful    = require('beautiful')
+local awful     = require('awful')
+local beautiful = require('beautiful')
 
-local calendar2    = require('calendar2')
+local calendar2 = require('calendar2')
 
-local string       = { format = string.format }
+local string = { format = string.format }
 
 module('delightful.widgets.datetime')
 
 function load()
-	local widget = awful_widget.textclock({ align = 'right' })
+	local widget = awful.widget.textclock()
 	local calendar_format = '%s'
 	if beautiful.fg_focus and beautiful.bg_focus then
 		calendar_format = string.format('<span color="%s" background="%s">%%s</span>',
