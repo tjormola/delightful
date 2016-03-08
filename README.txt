@@ -1,6 +1,6 @@
                          Delightful widgets for Awesome
 
-   This is Delightful, a set of widgets for [1]Awesome window manager.
+   This is Delightful, a set of widgets for [1]Awesome 3.5 window manager.
 
    Delightful home page is at
    [2]http://solitudo.net/software/awesome/delightful/. Also Delightful
@@ -33,7 +33,7 @@ Justifications
    makes sense.
 
    You might find Delightful widgets to have resemblance to some of the
-   popular GNOME applets. This is not coincidental. Whether you find it a
+   old GNOME 2 applets. This is not coincidental. Whether you find it a
    good or bad thing is up to you.
 
   Configurable
@@ -56,7 +56,7 @@ Justifications
    Delightful doesn't try to re-invent the wheel. Widgets depend heavily
    on [12]Vicious widget library. A few of the widgets just extend an
    existing Vicious widget by providing an icon and widget data display
-   configuration for the Vicious widget used under the hoods. Some of the
+   configuration for the Vicious widget used under the hood. Some of the
    widgets provide features not available in existing Vicious widgets by
    implementing the Vicious widget interface and then add "the bling" on
    top of that.
@@ -146,18 +146,19 @@ Weather widget
    All widgets except the Date and time widget can use icons. Using of
    icons is not required, but highly recommended. See the section about
    themeing for more info. On Debian/Ubuntu systems you can install the
-   package gnome-icon-theme in order to get the common icons installed and
-   additionally the package sensors-applet if you're planning to use the
-   CPU or Memory widgets and the package libgweather-common if you're
-   planning to use the Weather widget.
+   packages gnome-icon-theme gnome-icon-theme-full adwaita-icon-theme-full
+   in order to get the common icons installed and additionally the package
+   sensors-applet if you're planning to use the CPU or Memory widgets and
+   the packages libmateweather-common if you're planning to use the
+   Weather widget.
 
    IMAP widget requires [17]imap.lua. A tested and found-to-be-working
    version of imap.lua is provided in under the submodules/imap directory
    of the Delightful Git tree. See the downloading and install sections
    below for more information about the bundled imap.lua. imap.lua
    requires [18]LuaSocket and [19]LuaSec. On Debian/Ubuntu systems you can
-   install the packages liblua5.1-socket2 and liblua5.1-sec1 in order to
-   get LuaSocket and LuaSec installed.
+   install the packages lua-socket and lua-sec in order to get LuaSocket
+   and LuaSec installed.
 
    Weather widget requires [20]Lua weather library and [21]Lua METAR
    parser. A tested and found-to-be-working versions of these modules are
@@ -165,24 +166,25 @@ Weather widget
    directories of the Delightful Git tree. See the downloading and install
    sections below for more information about these modules. The METAR
    parser requires [22]LuaSocket. On Debian/Ubuntu systems you can install
-   the package liblua5.1-socket2 in order to get LuaSocket installed.
+   the package lua-socket in order to get LuaSocket installed.
 
-   Weather widget can also use GWeather XML location datafile to configure
-   weather report locations using city names instead of weather station
-   code. See the configuring section below for more information. If using
-   this feature, also [23]LuaExpat needs to be installed. On Debian/Ubuntu
-   systems you can install the packages libgweather-common and
-   liblua5.1-expat0 in order to get GWeather XML location datafile and
-   LuaExpat installed. Using GWeather support is highly recommended.
+   Weather widget can also use MateWeather XML location datafile to
+   configure weather report locations using city names instead of weather
+   station code. See the configuring section below for more information.
+   If using this feature, also [23]LuaExpat and [24]lua_zlip need to be
+   installed. On Debian/Ubuntu systems you can install the packages
+   libmateweather-common lua-expat lua-zlib in order to get MateWeather
+   XML location datafile and required Lua libraries installed. Using
+   MateWeather support is highly recommended.
 
-   Calendar widget requires [24]calendar2.lua. The module is included in
+   Calendar widget requires [25]calendar2.lua. The module is included in
    this distribution. See the install section below for more information.
 
                                   Downloading
 
    Delightful can be downloaded by cloning the public Git repository at
    git://scm.solitudo.net/delightful.git. Gitweb interface is available at
-   [25]http://scm.solitudo.net/gitweb/public/delightful.git.
+   [26]http://scm.solitudo.net/gitweb/public/delightful.git.
 
                                   Installation
 
@@ -217,16 +219,18 @@ Weather widget
           + $ cp delightful/calendar2.lua ~/.config/awesome
     9. If running Debian/Ubuntu system, install the dependency for common
        icons
-          + $ apt-get install gnome-icon-theme
+          + $ apt-get install gnome-icon-theme gnome-icon-theme-full
+            adwaita-icon-theme-full
    10. If running Debian/Ubuntu system, and planning to use the CPU or
        Memory widgets, install the dependency for icons
           + $ apt-get install sensors-applet
    11. If running Debian/Ubuntu system, and planning to use the IMAP
        widget, install the dependency packages
-          + $ apt-get install liblua5.1-socket2 liblua5.1-sec1
+          + $ apt-get install lua-socket lua-sec
    12. If running Debian/Ubuntu system, and planning to use the Weather
        widget, install the dependency packages
-          + $ apt-get install libgweather-common liblua5.1-socket2
+          + $ apt-get install libmateweather-common lua-socket lua-expat
+            lua-zlib
 
                                  Configuration
 
@@ -288,7 +292,7 @@ Network widget
    displays status for unwanted network devices, the following
    configuration option is handy.
      * excluded_devices
-          + A table of [26]Lua patterns that match network devices that
+          + A table of [27]Lua patterns that match network devices that
             are not to be monitored. For instance, if you don't want to
             see the idle interface eth1, you could use the pattern ^eth1$.
 
@@ -306,25 +310,25 @@ PulseAudio widget
 
 Weather widget
 
-   It is assumed that GWeather XML location datafile is available. See the
-   source file delightful/widgets/weather.lua for more information about
-   configuration if you're not going to be using GWeather XML location
-   datafile support.
+   It is assumed that MateWeather XML location datafile is available. See
+   the source file delightful/widgets/weather.lua for more information
+   about configuration if you're not going to be using MateWeather XML
+   location datafile support.
 
    You can configure multiple locations for weather monitoring. Each
    location needs to be given as a Lua table entry. For each location
    entry the most interesting configuration options are the following.
      * city
           + The city and optional country to monitor as listed in the
-            GWeather XML location datafile. The format for full entry is
-            <country name>, <city name>, for example United Kingdom,
+            MateWeather XML location datafile. The format for full entry
+            is <country name>, <city name>, for example United Kingdom,
             London. For London, UK, you have to use the full format since
-            the GWeather XML location datafile contains many cities named
-            London and the first matching city is used. If the city name
-            is globally unique, it's safe to use the simple format <city
-            name>. For example, to monitor the capital of Finland, you can
-            just use Helsinki as there's no two cities named Helsinki in
-            the world.
+            the MateWeather XML location datafile contains many cities
+            named London and the first matching city is used. If the city
+            name is globally unique, it's safe to use the simple format
+            <city name>. For example, to monitor the capital of Finland,
+            you can just use Helsinki as there's no two cities named
+            Helsinki in the world.
 
    This is really all that is needed if you're happy to use European style
    units. If you want to display units commonly used in the US or
@@ -359,12 +363,12 @@ Configuration options common to all widgets
 
                                     Themeing
 
-   Delightful widgets can use various aspects of the current [27]Beautiful
+   Delightful widgets can use various aspects of the current [28]Beautiful
    theme, though Delightful widgets should work with any unmodified theme.
    However, when using unmodified themes, be aware of the default icon
    lookup related performance notes below.
 
-   See the themes at [28]my Awesome themes page for examples of themes
+   See the themes at [29]my Awesome themes page for examples of themes
    with full Delightful support.
 
 Icons
@@ -374,23 +378,12 @@ Icons
    top of the each widget's source file under the directory
    delightful/widgets.
 
-   If an icon is not explicitly defined in the theme, default icon file
-   name is resolved using [29]awesome-freedesktop routines. Typically this
-   results in dozens if not hundreds of file accesses per icon when trying
-   to locate the icon file. If using many widgets and especially if using
-   the Weather widget, which uses exactly one hundred icons, the automatic
-   lookup of icons can take tens of seconds even on a fast machine. This
-   causes Awesome to stall for the whole time icons are being looked up.
-   So in order to get normal speedy startup, it's essential that icon
-   names are explicitly defined in the theme being used! See the themes
-   mentioned above for examples how to "delightfulify" your themes.
-
    While icons are highly recommended, they are not mandatory. You can
    disable showing of icons by two means. Either for each widget, set the
    no_icon configuration option explained above to true or just don't
    install the packages providing the default icons that are tried to
    lookup. The no_icon way is recommended since this way you don't get the
-   performance penalty with the default icon lookup explained above.
+   performance penalty with the default icon lookup.
 
 Text color
 
@@ -421,14 +414,14 @@ Font
 
    This section shows what you need to add to your Awesome configuration
    in order to get Delightful widgets added to your Awesome desktop. In
-   this sample, default configuration for Awesome 3.4.3 as shipped in
-   Ubuntu 10.04 lucid is used. I'm sure you can apply this to newer
-   default configurations or integrate as part of your non-default
-   configuration. Of course put something meaningful in the IMAP widget
-   configuration, remove unwanted widgets and so on.
+   this sample, default configuration for Awesome 3.5.6 as shipped in
+   Ubuntu 15.10 wily is used. I'm sure you can apply this to newer default
+   configurations or integrate as part of your non-default configuration.
+   Of course put something meaningful in the IMAP widget configuration,
+   remove unwanted widgets and so on.
 
-   In rc.lua, just before the layouts configuration add the following
-   section
+   In rc.lua, add the following section somewhere before the for loop that
+   iterates over each screen and sets up a wibox for the screen.
      __________________________________________________________________
 
 -- Delightful widgets
@@ -443,7 +436,7 @@ require('delightful.widgets.weather')
 
 -- Which widgets to install?
 -- This is the order the widgets appear in the wibox.
-install_delightful = {
+delightful_widgets = {
     delightful.widgets.network,
     delightful.widgets.cpu,
     delightful.widgets.memory,
@@ -451,7 +444,7 @@ install_delightful = {
     delightful.widgets.imap,
     delightful.widgets.battery,
     delightful.widgets.pulseaudio,
-    delightful.widgets.datetime
+    delightful.widgets.datetime,
 }
 
 -- Widget configuration
@@ -480,97 +473,42 @@ i',
         },
     },
     [delightful.widgets.pulseaudio] = {
-        mixer_command = 'gnome-volume-control',
+        mixer_command = 'pavucontrol',
     },
 }
-
--- Prepare the container that is used when constructing the wibox
-local delightful_container = { widgets = {}, icons = {} }
-if install_delightful then
-    for _, widget in pairs(awful.util.table.reverse(install_delightful)) do
-        local config = delightful_config and delightful_config[widget]
-        local widgets, icons = widget:load(config)
-        if widgets then
-            if not icons then
-                icons = {}
-            end
-            table.insert(delightful_container.widgets, awful.util.table.reverse(
-widgets))
-            table.insert(delightful_container.icons,   awful.util.table.reverse(
-icons))
-        end
-    end
-end
      __________________________________________________________________
 
-   Then at the end of wibox creation, delete the lines
+   Then inside the wibox creating for loop, delete the lines
      __________________________________________________________________
 
--- Add widgets to the wibox - order matters
-mywibox[s].widgets = {
-    {
-        mylauncher,
-        mytaglist[s],
-        mypromptbox[s],
-        layout = awful.widget.layout.horizontal.leftright
-    },
-    mylayoutbox[s],
-    mytextclock,
-    s == 1 and mysystray or nil,
-    mytasklist[s],
-    layout = awful.widget.layout.horizontal.rightleft
-}
+if s == 1 then right_layout:add(wibox.widget.systray()) end
+right_layout:add(mytextclock)
      __________________________________________________________________
 
    and replace with
      __________________________________________________________________
 
-local widgets_front = {
-    {
-        mylauncher,
-        mytaglist[s],
-        mypromptbox[s],
-        layout = awful.widget.layout.horizontal.leftright
-    },
-    mylayoutbox[s],
-}
-local widgets_middle = {}
-for delightful_container_index, delightful_container_data in pairs(delightful_co
-ntainer.widgets) do
-    for widget_index, widget_data in pairs(delightful_container_data) do
-        table.insert(widgets_middle, widget_data)
-        if delightful_container.icons[delightful_container_index] and delightful
-_container.icons[delightful_container_index][widget_index] then
-            table.insert(widgets_middle, delightful_container.icons[delightful_c
-ontainer_index][widget_index])
-        end
-    end
+if s == 1 then
+    right_layout:add(wibox.widget.systray())
+    delightful.utils.fill_wibox_container(delightful_widgets, delightful_config,
+ right_layout)
 end
-local widgets_end = {
-    s == 1 and mysystray or nil,
-    mytasklist[s],
-    layout = awful.widget.layout.horizontal.rightleft
-}
-mywibox[s].widgets = awful.util.table.join(widgets_front, widgets_middle, widget
-s_end)
      __________________________________________________________________
 
    and you should be done.
 
    This sample Delightful setup is also available as a patch file
-   awesome-3.4.3-delightful-sample-configuration.diff in the Delightful
-   distribution. The patch is against the stock Awesome 3.4.3 rc.lua.
+   awesome-3.5.6-delightful-sample-configuration.diff in the Delightful
+   distribution. The patch is against the stock Awesome 3.5.6 rc.lua.
 
                                   Contributing
 
    If you would like to contribute patches or new widgets, you can contact
    the author. See contact information below.
 
-   PS. A Git tree to pull from would be a joy.
-
                             Copyright and licensing
 
-   Copyright: © 2011 Tuomas Jormola [31]tj@solitudo.net
+   Copyright: © 2011-2016 Tuomas Jormola [31]tj@solitudo.net
    [32]http://solitudo.net
 
    Licensed under the terms of the [33]GNU General Public License Version
@@ -605,12 +543,12 @@ References
   21. http://solitudo.net/software/lua/metar/
   22. http://www.cs.princeton.edu/~diego/professional/luasocket/
   23. http://www.keplerproject.org/luaexpat/
-  24. https://awesome.naquadah.org/wiki/Calendar_widget#Module_for_3.4
-  25. http://scm.solitudo.net/gitweb/public/delightful.git
-  26. http://www.lua.org/manual/5.1/manual.html#5.4.1
-  27. https://awesome.naquadah.org/wiki/Beautiful
-  28. http://solitudo.net/software/awesome/themes/
-  29. https://github.com/terceiro/awesome-freedesktop
+  24. https://github.com/brimworks/lua-zlib
+  25. https://awesome.naquadah.org/wiki/Calendar_widget#Module_for_3.4
+  26. http://scm.solitudo.net/gitweb/public/delightful.git
+  27. http://www.lua.org/manual/5.1/manual.html#5.4.1
+  28. https://awesome.naquadah.org/wiki/Beautiful
+  29. http://solitudo.net/software/awesome/themes/
   30. http://en.wikipedia.org/wiki/Monospaced_font
   31. mailto:tj@solitudo.net
   32. http://solitudo.net/
