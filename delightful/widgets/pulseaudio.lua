@@ -232,7 +232,7 @@ function update_icon(sink_id)
 				icon_file = icon_files.max
 			elseif sink_data[sink_id].volperc > 100 * 0.3 then
 				icon_file = icon_files.med
-			elseif sink_data[sink_id].volperc > 0 then
+			else
 				icon_file = icon_files.min
 			end
 		end
