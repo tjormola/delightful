@@ -151,6 +151,7 @@ local icon_description = {
 	max   = { beautiful_name = 'delightful_vol_max',  default_icon = 'audio-volume-high'         },
 	med   = { beautiful_name = 'delightful_vol_med',  default_icon = 'audio-volume-medium'       },
 	min   = { beautiful_name = 'delightful_vol_min',  default_icon = 'audio-volume-low'          },
+	zero  = { beautiful_name = 'delightful_vol_zero', default_icon = 'audio-volume-low',         },
 	mute  = { beautiful_name = 'delightful_vol_mute', default_icon = 'audio-volume-muted'        },
 	error = { beautiful_name = 'delightful_error',    default_icon = 'dialog-error'              },
 }
@@ -232,8 +233,10 @@ function update_icon(sink_id)
 				icon_file = icon_files.max
 			elseif sink_data[sink_id].volperc > 100 * 0.3 then
 				icon_file = icon_files.med
-			else
+			elseif sink_data[sink_id].volperc > 0 then
 				icon_file = icon_files.min
+			elseif sink_data[sink_id].volperc == 0 then
+				icon_file = icon_files.zero
 			end
 		end
 	end
