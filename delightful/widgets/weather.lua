@@ -1,4 +1,3 @@
-local p=print
 -------------------------------------------------------------------------------
 --
 -- Weather widget for Awesome 3.5
@@ -136,7 +135,6 @@ local vicious    = require('vicious')
 local metar      = require('metar')
 local weatherlib = require('weatherlib')
 
-local print=print
 local assert       = assert
 local io           = { lines = io.lines, open = io.open, close = io.close, read = io.read }
 local math         = { floor = math.floor }

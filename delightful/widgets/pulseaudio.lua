@@ -83,7 +83,6 @@ local string       = { format = string.format }
 local table        = { insert = table.insert, remove = table.remove }
 local tonumber     = tonumber
 local type         = type
-local print=print
 
 module('delightful.widgets.pulseaudio')
 
@@ -241,7 +240,7 @@ function update_icon(sink_id)
 		end
 	end
 	if icon_file and (not prev_icons[sink_id] or prev_icons[sink_id] ~= icon_file) then
-		prev_icons[sink_id]  = icon_file
+		prev_icons[sink_id] = icon_file
 		icons[sink_id]:set_image(icon_file)
 	end
 end
