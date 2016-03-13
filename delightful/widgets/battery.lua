@@ -200,7 +200,7 @@ function vicious_formatter(widget, data)
 			tooltip_text = 'Battery is charged'
 		elseif data[1] == '+' then
 			tooltip_text = string.format('Battery charge %d%% \n On AC power, %s until charged', data[2], data[3])
-		elseif data[1] == '-' then
+		elseif data[1] == '−' then
 			tooltip_text = string.format('Battery charge %d%% \n On battery power, %s left', data[2], data[3])
 		else
 			tooltip_text = 'Battery status is unknown'
