@@ -13,7 +13,7 @@
 --
 -- Widget extends vicious.widgets.mem from Vicious widget framework.
 --
--- Widget tries to use an icon from the package sensors-applet
+-- Widget tries to use an icon from the package mate-sensors-applet-common
 -- if available.
 --
 --
@@ -94,7 +94,7 @@ local config_description = {
 }
 
 local icon_description = {
-	memory = { beautiful_name = 'delightful_mem', default_icon = 'sensors-applet-memory' },
+	memory = { beautiful_name = 'delightful_mem', default_icon = 'mate-sensors-applet-memory' },
 }
 
 -- Configuration handler

@@ -13,7 +13,7 @@
 --
 -- Widget extends vicious.widgets.cpu from Vicious widget framework.
 --
--- Widget tries to use an icon from the package sensors-applet
+-- Widget tries to use an icon from the package mate-sensors-applet-common
 -- if available.
 --
 --
@@ -86,7 +86,7 @@ local config_description = {
 }
 
 local icon_description = {
-	cpu = { beautiful_name = 'delightful_cpu', default_icon = 'sensors-applet-cpu' },
+	cpu = { beautiful_name = 'delightful_cpu', default_icon = 'mate-sensors-applet-cpu' },
 }
 
 -- Configuration handler

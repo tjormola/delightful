@@ -146,7 +146,7 @@ All widgets except the Date and time widget can use icons. Using of icons is not
 required, but highly recommended. See the section about themeing for more info.
 On Debian/Ubuntu systems you can install the packages
 `gnome-icon-theme gnome-icon-theme-full adwaita-icon-theme-full` in order
-to get the common icons installed and additionally the package `sensors-applet`
+to get the common icons installed and additionally the package `mate-sensors-applet-common`
 if you're planning to use the CPU or Memory widgets and the packages
 `libmateweather-common` if you're planning to use the Weather widget.
 
@@ -212,7 +212,7 @@ Delightful can be downloaded by cloning the public Git repository at
 1. If running Debian/Ubuntu system, install the dependency for common icons
 	* $ `apt-get install gnome-icon-theme gnome-icon-theme-full adwaita-icon-theme-full`
 1. If running Debian/Ubuntu system, and planning to use the CPU or Memory widgets, install the dependency for icons
-	* $ `apt-get install sensors-applet`
+	* $ `apt-get install mate-sensors-applet-common`
 1. If running Debian/Ubuntu system, and planning to use the IMAP widget, install the dependency packages
 	* $ `apt-get install lua-socket lua-sec`
 1. If running Debian/Ubuntu system, and planning to use the Weather widget, install the dependency packages
