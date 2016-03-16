@@ -148,9 +148,9 @@ Weather widget
    themeing for more info. On Debian/Ubuntu systems you can install the
    packages gnome-icon-theme gnome-icon-theme-full adwaita-icon-theme-full
    in order to get the common icons installed and additionally the package
-   sensors-applet if you're planning to use the CPU or Memory widgets and
-   the packages libmateweather-common if you're planning to use the
-   Weather widget.
+   mate-sensors-applet-common if you're planning to use the CPU or Memory
+   widgets and the packages libmateweather-common if you're planning to
+   use the Weather widget.
 
    IMAP widget requires [17]imap.lua. A tested and found-to-be-working
    version of imap.lua is provided in under the submodules/imap directory
@@ -223,7 +223,7 @@ Weather widget
             adwaita-icon-theme-full
    10. If running Debian/Ubuntu system, and planning to use the CPU or
        Memory widgets, install the dependency for icons
-          + $ apt-get install sensors-applet
+          + $ apt-get install mate-sensors-applet-common
    11. If running Debian/Ubuntu system, and planning to use the IMAP
        widget, install the dependency packages
           + $ apt-get install lua-socket lua-sec
