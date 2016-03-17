@@ -149,42 +149,45 @@ Weather widget
    packages gnome-icon-theme gnome-icon-theme-full adwaita-icon-theme-full
    in order to get the common icons installed and additionally the package
    mate-sensors-applet-common if you're planning to use the CPU or Memory
-   widgets and the packages libmateweather-common if you're planning to
-   use the Weather widget.
+   widgets and the package libmateweather-common if you're planning to use
+   the Weather widget.
 
-   IMAP widget requires [17]imap.lua. A tested and found-to-be-working
+   Battery widget requires [17]Lua BitOp. On Debian/Ubuntu systems you can
+   install the packages lua-bitop.
+
+   IMAP widget requires [18]imap.lua. A tested and found-to-be-working
    version of imap.lua is provided in under the submodules/imap directory
    of the Delightful Git tree. See the downloading and install sections
    below for more information about the bundled imap.lua. imap.lua
-   requires [18]LuaSocket and [19]LuaSec. On Debian/Ubuntu systems you can
+   requires [19]LuaSocket and [20]LuaSec. On Debian/Ubuntu systems you can
    install the packages lua-socket and lua-sec in order to get LuaSocket
    and LuaSec installed.
 
-   Weather widget requires [20]Lua weather library and [21]Lua METAR
+   Weather widget requires [21]Lua weather library and [22]Lua METAR
    parser. A tested and found-to-be-working versions of these modules are
    provided under the submodules/weatherlib and submodules/metar
    directories of the Delightful Git tree. See the downloading and install
    sections below for more information about these modules. The METAR
-   parser requires [22]LuaSocket. On Debian/Ubuntu systems you can install
+   parser requires [23]LuaSocket. On Debian/Ubuntu systems you can install
    the package lua-socket in order to get LuaSocket installed.
 
    Weather widget can also use MateWeather XML location datafile to
    configure weather report locations using city names instead of weather
    station code. See the configuring section below for more information.
-   If using this feature, also [23]LuaExpat and [24]lua_zlip need to be
+   If using this feature, also [24]LuaExpat and [25]lua_zlip need to be
    installed. On Debian/Ubuntu systems you can install the packages
    libmateweather-common lua-expat lua-zlib in order to get MateWeather
    XML location datafile and required Lua libraries installed. Using
    MateWeather support is highly recommended.
 
-   Calendar widget requires [25]calendar2.lua. The module is included in
+   Calendar widget requires [26]calendar2.lua. The module is included in
    this distribution. See the install section below for more information.
 
                                   Downloading
 
    Delightful can be downloaded by cloning the public Git repository at
    git://scm.solitudo.net/delightful.git. Gitweb interface is available at
-   [26]http://scm.solitudo.net/gitweb/public/delightful.git.
+   [27]http://scm.solitudo.net/gitweb/public/delightful.git.
 
                                   Installation
 
@@ -292,7 +295,7 @@ Network widget
    displays status for unwanted network devices, the following
    configuration option is handy.
      * excluded_devices
-          + A table of [27]Lua patterns that match network devices that
+          + A table of [28]Lua patterns that match network devices that
             are not to be monitored. For instance, if you don't want to
             see the idle interface eth1, you could use the pattern ^eth1$.
 
@@ -363,12 +366,12 @@ Configuration options common to all widgets
 
                                     Themeing
 
-   Delightful widgets can use various aspects of the current [28]Beautiful
+   Delightful widgets can use various aspects of the current [29]Beautiful
    theme, though Delightful widgets should work with any unmodified theme.
    However, when using unmodified themes, be aware of the default icon
    lookup related performance notes below.
 
-   See the themes at [29]my Awesome themes page for examples of themes
+   See the themes at [30]my Awesome themes page for examples of themes
    with full Delightful support.
 
 Icons
@@ -407,7 +410,7 @@ Font
    IMAP and Weather widgets use the following font.
      * delightful_monospace_font
           + Font used when rendering text to popups. The setting should
-            refer to a [30]monospaced font. Fallback to monospace if
+            refer to a [31]monospaced font. Fallback to monospace if
             delightful_monospace_font not defined.
 
                                 Using in Awesome
@@ -508,15 +511,15 @@ end
 
                             Copyright and licensing
 
-   Copyright: © 2011-2016 Tuomas Jormola [31]tj@solitudo.net
-   [32]http://solitudo.net
+   Copyright: © 2011-2016 Tuomas Jormola [32]tj@solitudo.net
+   [33]http://solitudo.net
 
-   Licensed under the terms of the [33]GNU General Public License Version
+   Licensed under the terms of the [34]GNU General Public License Version
    2.0. License terms are included in the file COPYING.
 
    calendar2.lua included in this distribution was created by Bernd
-   Zeimetz [34]bernd@bzed.de and modified by Marc Dequènes
-   [35]Duck@DuckCorp.org. calendar2.lua is released to public domain.
+   Zeimetz [35]bernd@bzed.de and modified by Marc Dequènes
+   [36]Duck@DuckCorp.org. calendar2.lua is released to public domain.
 
 References
 
@@ -536,22 +539,23 @@ References
   14. http://git.sysphere.org/vicious/
   15. https://github.com/terceiro/awesome-freedesktop
   16. https://github.com/terceiro/awesome-freedesktop.git
-  17. https://github.com/dmj/misc/tree/master/lua/imap.lua
-  18. http://www.cs.princeton.edu/~diego/professional/luasocket/
-  19. http://www.inf.puc-rio.br/~brunoos/luasec/
-  20. http://solitudo.net/software/lua/weatherlib/
-  21. http://solitudo.net/software/lua/metar/
-  22. http://www.cs.princeton.edu/~diego/professional/luasocket/
-  23. http://www.keplerproject.org/luaexpat/
-  24. https://github.com/brimworks/lua-zlib
-  25. https://awesome.naquadah.org/wiki/Calendar_widget#Module_for_3.4
-  26. http://scm.solitudo.net/gitweb/public/delightful.git
-  27. http://www.lua.org/manual/5.1/manual.html#5.4.1
-  28. https://awesome.naquadah.org/wiki/Beautiful
-  29. http://solitudo.net/software/awesome/themes/
-  30. http://en.wikipedia.org/wiki/Monospaced_font
-  31. mailto:tj@solitudo.net
-  32. http://solitudo.net/
-  33. http://www.gnu.org/licenses/gpl-2.0.html
-  34. mailto:bernd@bzed.de
-  35. mailto:Duck@DuckCorp.org
+  17. http://bitop.luajit.org/
+  18. https://github.com/dmj/misc/tree/master/lua/imap.lua
+  19. http://www.cs.princeton.edu/~diego/professional/luasocket/
+  20. http://www.inf.puc-rio.br/~brunoos/luasec/
+  21. http://solitudo.net/software/lua/weatherlib/
+  22. http://solitudo.net/software/lua/metar/
+  23. http://www.cs.princeton.edu/~diego/professional/luasocket/
+  24. http://www.keplerproject.org/luaexpat/
+  25. https://github.com/brimworks/lua-zlib
+  26. https://awesome.naquadah.org/wiki/Calendar_widget#Module_for_3.4
+  27. http://scm.solitudo.net/gitweb/public/delightful.git
+  28. http://www.lua.org/manual/5.1/manual.html#5.4.1
+  29. https://awesome.naquadah.org/wiki/Beautiful
+  30. http://solitudo.net/software/awesome/themes/
+  31. http://en.wikipedia.org/wiki/Monospaced_font
+  32. mailto:tj@solitudo.net
+  33. http://solitudo.net/
+  34. http://www.gnu.org/licenses/gpl-2.0.html
+  35. mailto:bernd@bzed.de
+  36. mailto:Duck@DuckCorp.org
