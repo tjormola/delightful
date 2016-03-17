@@ -29,7 +29,7 @@
 --        no_icon            = true,
 -- -- Height of the progress bar in pixels. Default is 19.
 --        progressbar_height = 19,
--- -- Width of the progress bar in pixels. Default is 8.
+-- -- Width of the progress bar in pixels. Default is 12.
 --        progressbar_width  = 12,
 -- -- How often update the widget data. Default is 10 second.
 --        update_interval    = 20
@@ -101,7 +101,7 @@ local config_description = {
 	{
 		name     = 'progressbar_width',
 		required = true,
-		default  = 8,
+		default  = 12,
 		validate = function(value) return delightful.utils.config_int(value) end
 	},
 	{

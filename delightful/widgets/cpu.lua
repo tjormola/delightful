@@ -29,7 +29,7 @@
 --        no_icon         = true,
 -- -- Height of the graph in pixels. Default is 19.
 --        graph_height    = 19,
--- -- Width of the graph in pixels. Default is 20.
+-- -- Width of the graph in pixels. Default is 30.
 --        graph_width     = 50,
 -- -- How often update the widget data. Default is 1 second.
 --        update_interval = 2
@@ -85,7 +85,7 @@ local config_description = {
 	{
 		name     = 'graph_width',
 		required = true,
-		default  = 20,
+		default  = 30,
 		validate = function(value) return delightful.utils.config_int(value) end
 	},
 	{
