@@ -16,6 +16,8 @@
 -- Widget tries to use icons from the package gnome-icon-theme
 -- if available.
 --
+-- This widget uses Lua BitOp http://bitop.luajit.org.
+--
 --
 -- Configuration:
 --
@@ -45,18 +47,23 @@
 -- The widget uses following settings, colors and icons if available in
 -- the Awesome theme.
 --
--- theme.progressbar_height        - height of the battery charge progress bar in pixels
--- theme.progressbar_width         - width of the battery charge progress bar in pixels
--- theme.bg_widget                 - widget background color
--- theme.fg_widget                 - widget foreground color
--- theme.fg_center_widget          - widget gradient color, middle
--- theme.fg_end_widget             - widget gradient color, end
--- theme.delightful_battery_ac     - icon shown when the machine is connected to AC adapter
--- theme.delightful_battery_full   - icon shown when battery has 50%-99% charge
--- theme.delightful_battery_medium - icon shown when battery has 15%-49% charge
--- theme.delightful_battery_low    - icon shown when battery has less than 15% charge
--- theme.delightful_not_found      - icon shown when battery status is unknown
--- theme.delightful_error          - icon shown when critical error has occurred
+-- theme.progressbar_height                  - height of the battery charge progress bar in pixels
+-- theme.progressbar_width                   - width of the battery charge progress bar in pixels
+-- theme.bg_widget                           - widget background color
+-- theme.fg_widget                           - widget foreground color
+-- theme.fg_center_widget                    - widget gradient color, middle
+-- theme.fg_end_widget                       - widget gradient color, end
+-- theme.delightful_battery_full             - icon shown when the battery has full charge and discharging
+-- theme.delightful_battery_full_charging    - icon shown when the battery has full charge and charging
+-- theme.delightful_battery_good             - icon shown when the battery has 30%-99% charge left and discharging
+-- theme.delightful_battery_good_charging    - icon shown when the battery has 30%-99% charge left and charging
+-- theme.delightful_battery_low              - icon shown when the battery has 10%-29% charge left and discharging
+-- theme.delightful_battery_low_charging     - icon shown when the battery has 10%-29% charge left and charging
+-- theme.delightful_battery_caution          - icon shown when the battery has 1%-9% charge left and discharging
+-- theme.delightful_battery_caution_charging - icon shown when the battery has 1%-9% charge left and charging
+-- theme.delightful_battery_empty            - icon shown when the battery has less than 1% charge left
+-- theme.delightful_battery_unknown          - icon shown when battery status is unknown
+-- theme.delightful_error                    - icon shown when critical error has occurred
 --
 -------------------------------------------------------------------------------
 
@@ -67,8 +74,10 @@ local beautiful  = require('beautiful')
 local delightful = { utils = require('delightful.utils') }
 local vicious    = require('vicious')
 
+local bit        = require('bit')
+
 local pairs  = pairs
-local string = { format = string.format }
+local string = { format = string.format, sub = string.sub }
 
 module('delightful.widgets.battery')
 
@@ -126,13 +135,70 @@ local config_description = {
 }
 
 local icon_description = {
-    battery_ac     = { beautiful_name = 'delightful_battery_ac',     default_icon = 'battery-good-charging' },
-    battery_full   = { beautiful_name = 'delightful_battery_full',   default_icon = 'battery-good'          },
-    battery_medium = { beautiful_name = 'delightful_battery_medium', default_icon = 'battery-low'           },
-    battery_low    = { beautiful_name = 'delightful_battery_low',    default_icon = 'battery-caution'       },
-    not_found      = { beautiful_name = 'delightful_not_found',      default_icon = 'dialog-question'       },
-    error          = { beautiful_name = 'delightful_error',          default_icon = 'dialog-error'          },
+    battery_full_charging    = { beautiful_name = 'delightful_battery_full_charging',    default_icon = 'battery-full-charging'    },
+    battery_full             = { beautiful_name = 'delightful_battery_full',             default_icon = 'battery-full'             },
+    battery_good_charging    = { beautiful_name = 'delightful_battery_good_charging',    default_icon = 'battery-good-charging'    },
+    battery_good             = { beautiful_name = 'delightful_battery_good',             default_icon = 'battery-good'             },
+    battery_low_charging     = { beautiful_name = 'delightful_battery_low_charging',     default_icon = 'battery-low-charging'     },
+    battery_low              = { beautiful_name = 'delightful_battery_low',              default_icon = 'battery-low'              },
+    battery_caution_charging = { beautiful_name = 'delightful_battery_caution_charging', default_icon = 'battery-caution-charging' },
+    battery_caution          = { beautiful_name = 'delightful_battery_caution',          default_icon = 'battery-caution'          },
+    battery_empty            = { beautiful_name = 'delightful_battery_empty',            default_icon = 'battery-empty'            },
+    battery_unknown          = { beautiful_name = 'delightful_battery_unknown',          default_icon = 'battery-missing'          },
+    error                    = { beautiful_name = 'delightful_error',                    default_icon = 'dialog-error'             },
 }
+
+local UNKNOWN, CHARGING, DISCHARGING, EMPTY, CAUTION, LOW, GOOD, FULL = 1, 2, 3, 4, 5, 6, 7, 8
+
+local mask = {
+    UNKNOWN     = 1,
+    CHARGING    = bit.lshift(1, 1),
+    DISCHARGING = bit.lshift(1, 2),
+    EMPTY       = bit.lshift(1, 3),
+    CAUTION     = bit.lshift(1, 4),
+    LOW         = bit.lshift(1, 5),
+    GOOD        = bit.lshift(1, 6),
+    FULL        = bit.lshift(1, 7),
+}
+
+local capacity_limit = {
+    GOOD    = 100,
+    LOW     = 30,
+    CAUTION = 10,
+    EMPTY   = 1,
+}
+
+local icon_mapping = {}
+icon_mapping[bit.bor(mask.FULL,        mask.FULL)   ] = function() return icon_files and icon_files.battery_full             end
+icon_mapping[bit.bor(mask.CHARGING,    mask.FULL)   ] = function() return icon_files and icon_files.battery_full_charging    end
+icon_mapping[bit.bor(mask.DISCHARGING, mask.FULL)   ] = function() return icon_files and icon_files.battery_full             end
+icon_mapping[bit.bor(mask.UNKNOWN,     mask.FULL)   ] = function() return icon_files and icon_files.battery_full             end
+icon_mapping[                          mask.FULL    ] = function() return icon_files and icon_files.battery_full             end
+icon_mapping[bit.bor(mask.CHARGING,    mask.GOOD)   ] = function() return icon_files and icon_files.battery_good_charging    end
+icon_mapping[bit.bor(mask.DISCHARGING, mask.GOOD)   ] = function() return icon_files and icon_files.battery_good             end
+icon_mapping[bit.bor(mask.UNKNOWN,     mask.GOOD)   ] = function() return icon_files and icon_files.battery_good             end
+icon_mapping[                          mask.GOOD    ] = function() return icon_files and icon_files.battery_good             end
+icon_mapping[bit.bor(mask.CHARGING,    mask.LOW)    ] = function() return icon_files and icon_files.battery_low_charging     end
+icon_mapping[bit.bor(mask.DISCHARGING, mask.LOW)    ] = function() return icon_files and icon_files.battery_low              end
+icon_mapping[bit.bor(mask.UNKNOWN,     mask.LOW)    ] = function() return icon_files and icon_files.battery_low              end
+icon_mapping[                          mask.LOW     ] = function() return icon_files and icon_files.battery_low              end
+icon_mapping[bit.bor(mask.CHARGING,    mask.CAUTION)] = function() return icon_files and icon_files.battery_caution_charging end
+icon_mapping[bit.bor(mask.DISCHARGING, mask.CAUTION)] = function() return icon_files and icon_files.battery_caution          end
+icon_mapping[bit.bor(mask.UNKNOWN,     mask.CAUTION)] = function() return icon_files and icon_files.battery_caution          end
+icon_mapping[                          mask.CAUTION ] = function() return icon_files and icon_files.battery_caution          end
+icon_mapping[bit.bor(mask.CHARGING,    mask.EMPTY)  ] = function() return icon_files and icon_files.battery_empty            end
+icon_mapping[bit.bor(mask.DISCHARGING, mask.EMPTY)  ] = function() return icon_files and icon_files.battery_empty            end
+icon_mapping[bit.bor(mask.UNKNOWN,     mask.EMPTY)  ] = function() return icon_files and icon_files.battery_empty            end
+icon_mapping[                          mask.EMPTY   ] = function() return icon_files and icon_files.battery_empty            end
+icon_mapping[bit.bor(mask.CHARGING,    mask.UNKNOWN)] = function() return icon_files and icon_files.battery_unknown          end
+icon_mapping[bit.bor(mask.DISCHARGING, mask.UNKNOWN)] = function() return icon_files and icon_files.battery_unknown          end
+icon_mapping[                          mask.UNKNOWN ] = function() return icon_files and icon_files.battery_unknown          end
+
+local state_mapping = {}
+state_mapping['⌁'] = mask.UNKNOWN
+state_mapping['↯'] = mask.FULL
+state_mapping['+'] = mask.CHARGING
+state_mapping['−'] = mask.DISCHARGING
 
 -- Configuration handler
 function handle_config(user_config)
@@ -166,7 +232,7 @@ function load(self, config)
     if not battery_config.no_icon then
         icon_files = delightful.utils.find_icon_files(icon_description)
     end
-    if icon_files.battery_ac and icon_files.battery_full and icon_files.battery_medium and icon_files.battery_low and icon_files.not_found and icon_files.error then
+    if icon_files.battery_full and icon_files.battery_good_charging and icon_files.battery_good and icon_files.battery_low_charging and icon_files.battery_low and icon_files.battery_caution_charging and icon_files.battery_caution and icon_files.battery_empty and icon_files.battery_unknown and icon_files.error then
         local buttons = awful.button({}, 1, function()
                 if not fatal_error and battery_config.command then
                     awful.util.spawn(battery_config.command, true)
@@ -209,39 +275,81 @@ end
 
 -- Vicious display formatter, also update widget tooltip and icon
 function vicious_formatter(widget, data)
+    local mask_state, mask_capacity
+    if data[1] and state_mapping[data[1]] then
+        mask_state = state_mapping[data[1]]
+    end
+    if data[2] then
+        if data[2] < capacity_limit.EMPTY then
+            mask_capacity = mask.EMPTY
+        elseif data[2] < capacity_limit.CAUTION then
+            mask_capacity = mask.CAUTION
+        elseif data[2] < capacity_limit.LOW then
+            mask_capacity = mask.LOW
+        elseif data[2] < capacity_limit.GOOD then
+            mask_capacity = mask.GOOD
+        else
+            mask_capacity = mask.FULL
+        end
+    end
+    -- this is sometimes incorrectly rounded down to negative
+    if data[3] and string.sub(data[3], 1, 1) == '-' then
+        data[3] = '00:00'
+    end
+    local mask_combined = mask.UNKNOWN
+    if mask_capacity then
+        if mask_state then
+            if mask_capacity == mask.FULL and mask_state == mask.FULL then
+                mask_state = mask.CHARGING
+            end
+            mask_combined = bit.bor(mask_state, mask_capacity)
+        else
+            mask_combined = mask_capacity
+        end
+    end
     -- update tooltip
-    local unknown = false
     if icon_tooltip then
         local tooltip_text
+        if not bit.band(mask_combined, mask.UNKNOWN) == 0 then
+            tooltip_text = 'Battery status is unknown'
+        elseif mask_capacity then
+            tooltip_text = string.format('Battery charge %d%%', data[2])
+            if bit.band(mask_state, mask.CHARGING) ~= 0 then
+                tooltip_text = string.format('%s \n On AC power', tooltip_text)
+                if data[3] and (data[3] ~= 'N/A' and data[3] ~= '00:00') then
+                    tooltip_text = string.format('%s, %s until charged', tooltip_text, data[3])
+                end
+            elseif bit.band(mask_state, mask.DISCHARGING) ~= 0 then
+                tooltip_text = string.format('%s \n On battery power', tooltip_text)
+                if data[3] and data[3] ~= 'N/A' then
+                    tooltip_text = string.format('%s, %s left', tooltip_text, data[3])
+                end
+            end
+        else
+            fatal_error = 'Failed to update battery status'
+        end
         if fatal_error then
             tooltip_text = fatal_error
-        elseif data[1] == '↯' then
-            tooltip_text = 'Battery is charged'
-        elseif data[1] == '+' then
-            tooltip_text = string.format('Battery charge %d%% \n On AC power, %s until charged', data[2], data[3])
-        elseif data[1] == '−' then
-            tooltip_text = string.format('Battery charge %d%% \n On battery power, %s left', data[2], data[3])
-        else
-            tooltip_text = 'Battery status is unknown'
-            unknown = true
         end
         icon_tooltip:set_text(string.format(' %s ', tooltip_text))
     end
     -- update icon
     if icon then
         local icon_file
+        if not fatal_error and icon_mapping[mask_combined] then
+            icon_file = icon_mapping[mask_combined]()
+            if not icon_file then
+                fatal_error = 'Failed to update battery icon: No icon file found'
+            end
+        else
+            fatal_error = string.format('Failed to update battery icon: No icon mapping found for mask %s|%s = %s',
+                (mask_state or 'nil'), (mask_capacity or 'nil'), (mask_combined or 'nil'))
+        end
         if fatal_error then
             icon_file = icon_files.error
-        elseif unknown then
-            icon_file = icon_files.not_found
-        elseif data[1] == '+' then
-            icon_file = icon_files.battery_ac
-        elseif data[2] >= 50 and data[2] <= 100 then
-            icon_file = icon_files.battery_full
-        elseif data[2] >= 15 and data[2] < 50   then
-            icon_file = icon_files.battery_medium
-        elseif data[2] >= 0  and data[2] < 15   then
-            icon_file = icon_files.battery_low
+            if icon_tooltip then
+                icon_tooltip:set_text(string.format(' %s ', fatal_error))
+            end
         end
         if icon_file and (not prev_icon or prev_icon ~= icon_file) then
             prev_icon = icon_file

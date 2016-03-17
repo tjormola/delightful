@@ -150,6 +150,9 @@ to get the common icons installed and additionally the package `mate-sensors-app
 if you're planning to use the CPU or Memory widgets and the package
 `libmateweather-common` if you're planning to use the Weather widget.
 
+Battery widget requires [Lua BitOp](http://bitop.luajit.org).
+On Debian/Ubuntu systems you can install the packages `lua-bitop`.
+
 IMAP widget requires [`imap.lua`](https://github.com/dmj/misc/tree/master/lua/imap.lua).
 A tested and found-to-be-working version of `imap.lua` is provided in under
 the `submodules/imap` directory of the Delightful Git tree. See the downloading
