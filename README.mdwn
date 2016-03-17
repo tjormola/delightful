@@ -147,7 +147,7 @@ required, but highly recommended. See the section about themeing for more info.
 On Debian/Ubuntu systems you can install the packages
 `gnome-icon-theme gnome-icon-theme-full adwaita-icon-theme-full` in order
 to get the common icons installed and additionally the package `mate-sensors-applet-common`
-if you're planning to use the CPU or Memory widgets and the packages
+if you're planning to use the CPU or Memory widgets and the package
 `libmateweather-common` if you're planning to use the Weather widget.
 
 IMAP widget requires [`imap.lua`](https://github.com/dmj/misc/tree/master/lua/imap.lua).
