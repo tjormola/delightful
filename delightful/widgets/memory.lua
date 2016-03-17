@@ -24,29 +24,36 @@
 -- {
 -- -- Command to execute when left-clicking the widget icon.
 -- -- Empty by default.
---	      command         = 'gnome-system-monitor',
+--        command            = 'gnome-system-monitor',
 -- -- Don't try to display any icons. Default is false (i.e. display icons).
---        no_icon         = true,
+--        no_icon            = true,
+-- -- Height of the progress bar in pixels. Default is 19.
+--        progressbar_height = 19,
+-- -- Width of the progress bar in pixels. Default is 8.
+--        progressbar_width  = 12,
 -- -- How often update the widget data. Default is 10 second.
---    	  update_interval = 20
+--        update_interval    = 20
 -- }
 --
 --
 -- Theme:
 --
--- The widget uses following colors and icons if available in
+-- The widget uses following settings, colors and icons if available in
 -- the Awesome theme.
 --
--- theme.bg_widget        - widget background color
--- theme.fg_widget        - widget foreground color
--- theme.fg_center_widget - widget gradient color, middle
--- theme.fg_end_widget    - widget gradient color, end
--- theme.delightful_mem   - icon shown next to the memory progress bars
+-- theme.progressbar_height - height of the memory usage progress bar in pixels
+-- theme.progressbar_width  - width of the memory usage progress bar in pixels
+-- theme.bg_widget          - widget background color
+-- theme.fg_widget          - widget foreground color
+-- theme.fg_center_widget   - widget gradient color, middle
+-- theme.fg_end_widget      - widget gradient color, end
+-- theme.delightful_mem     - icon shown next to the memory progress bars
 --
 -------------------------------------------------------------------------------
 
 local awful      = require('awful')
 local wibox      = require('wibox')
+local beautiful  = require('beautiful')
 
 local delightful = { utils = require('delightful.utils') }
 local vicious    = require('vicious')
@@ -84,6 +91,18 @@ local config_description = {
 	{
 		name     = 'no_icon',
 		validate = function(value) return delightful.utils.config_boolean(value) end
+	},
+	{
+		name     = 'progressbar_height',
+		required = true,
+		default  = 19,
+		validate = function(value) return delightful.utils.config_int(value) end
+	},
+	{
+		name     = 'progressbar_width',
+		required = true,
+		default  = 8,
+		validate = function(value) return delightful.utils.config_int(value) end
 	},
 	{
 		name     = 'update_interval',
@@ -156,8 +175,8 @@ function load(self, config)
 		memory_widget:set_border_color(bg_color)
 	end
 	local color_args = fg_color
-	local width  = 8
-	local height = 19
+	local height = beautiful.progressbar_height or memory_config.progressbar_height
+	local width  = beautiful.progressbar_width  or memory_config.progressbar_width
 	if fg_color and fg_center_color and fg_end_color then
 		color_args = {
 			type = 'linear',

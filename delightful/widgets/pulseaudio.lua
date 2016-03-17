@@ -29,29 +29,35 @@
 -- -- "pacmd list-sinks" command. This can be used to limit mixer controls
 -- -- to certain sinks only. By default, widget creates controls for
 -- -- all the sinks in the system. The example shows 1st and 3rd sink.
---    	  sink_nums          = { 0, 2 },
+--        sink_nums          = { 0, 2 },
 -- -- Whether to try to start PulseAudio if reading of the sink data
 -- -- fails. Default is true.
---	      pulseaudio_start   = true,
+--        pulseaudio_start   = true,
 -- -- Path to pulseaudio command. 'pulseaudio' by default.
---	      pulseaudio_command = '/usr/local/bin/pulseaudio',
+--        pulseaudio_command = '/usr/local/bin/pulseaudio',
 -- -- Path to pacmd command. 'pacmd' by default.
---	      pacmd_command      = '/usr/local/bin/pacmd',
+--        pacmd_command      = '/usr/local/bin/pacmd',
 -- -- Command to execute when right-clicking the widget icon.
 -- -- Empty by default.
---	      mixer_command      = 'pavucontrol',
+--        mixer_command      = 'pavucontrol',
 -- -- Don't try to display any icons. Default is false (i.e. display icons).
 --        no_icon            = true,
+-- -- Height of the progress bar in pixels. Default is 19.
+--        progressbar_height = 19,
+-- -- Width of the progress bar in pixels. Default is 8.
+--        progressbar_width  = 12,
 -- -- How often update the widget data. Default is 10 seconds.
---	      update_interval    = 30
+--        update_interval    = 30
 -- }
 --
 --
 -- Theme:
 --
--- The widget uses following colors and icons if available in
+-- The widget uses following settings, colors and icons if available in
 -- the Awesome theme.
 --
+-- theme.progressbar_height  - height of the volume progress bar in pixels
+-- theme.progressbar_width   - width of the volume progress bar in pixels
 -- theme.bg_widget           - widget background color
 -- theme.fg_widget           - widget foreground color
 -- theme.fg_center_widget    - widget gradient color, middle
@@ -70,6 +76,7 @@
 
 local awful      = require('awful')
 local wibox      = require('wibox')
+local beautiful  = require('beautiful')
 
 local delightful = { utils = require('delightful.utils') }
 local vicious    = require('vicious')
@@ -136,6 +143,18 @@ local config_description = {
 	{
 		name     = 'no_icon',
 		validate = function(value) return delightful.utils.config_boolean(value) end
+	},
+	{
+		name     = 'progressbar_height',
+		required = true,
+		default  = 19,
+		validate = function(value) return delightful.utils.config_int(value) end
+	},
+	{
+		name     = 'progressbar_width',
+		required = true,
+		default  = 8,
+		validate = function(value) return delightful.utils.config_int(value) end
 	},
 	{
 		name     = 'update_interval',
@@ -349,8 +368,8 @@ function load(self, config)
 			widget:set_background_color(bg_color)
 		end
 		local color_args = fg_color
-		local width  = 8
-		local height = 19
+		local height = beautiful.progressbar_height or pulseaudio_config.progressbar_height
+		local width  = beautiful.progressbar_width  or pulseaudio_config.progressbar_width
 		if fg_color and fg_center_color and fg_end_color then
 			color_args = {
 				type = 'linear',

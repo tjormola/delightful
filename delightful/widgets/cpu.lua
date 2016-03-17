@@ -22,23 +22,27 @@
 -- The load() function can be supplied with configuration.
 -- Format of the configuration is as follows.
 -- {
--- -- Width of the graph in pixels. Default is 20.
---	      graph_width     = 50,
 -- -- Command to execute when left-clicking the widget icon.
 -- -- Empty by default.
---	      command         = 'gnome-system-monitor',
+--        command         = 'gnome-system-monitor',
 -- -- Don't try to display any icons. Default is false (i.e. display icons).
 --        no_icon         = true,
+-- -- Height of the graph in pixels. Default is 19.
+--        graph_height    = 19,
+-- -- Width of the graph in pixels. Default is 20.
+--        graph_width     = 50,
 -- -- How often update the widget data. Default is 1 second.
---	      update_interval = 2
+--        update_interval = 2
 -- }
 --
 --
 -- Theme:
 --
--- The widget uses following colors and icons if available in
+-- The widget uses following settings, colors and icons if available in
 -- the Awesome theme.
 --
+-- theme.graph_height     - height of the CPU graph in pixels
+-- theme.graph_width      - width of the CPU graph in pixels
 -- theme.bg_widget        - widget background color
 -- theme.fg_widget        - widget foreground color
 -- theme.fg_center_widget - widget gradient color, middle
@@ -49,6 +53,7 @@
 
 local awful       = require('awful')
 local wibox       = require('wibox')
+local beautiful   = require('beautiful')
 
 local delightful  = { utils = require('delightful.utils') }
 local vicious     = require('vicious')
@@ -64,18 +69,24 @@ local icon_tooltip
 
 local config_description = {
 	{
-		name     = 'graph_width',
-		required = true,
-		default  = 20,
-		validate = function(value) return delightful.utils.config_int(value) end
-	},
-	{
 		name     = 'command',
 		validate = function(value) return delightful.utils.config_string(value) end
 	},
 	{
 		name     = 'no_icon',
 		validate = function(value) return delightful.utils.config_boolean(value) end
+	},
+	{
+		name     = 'graph_height',
+		required = true,
+		default  = 19,
+		validate = function(value) return delightful.utils.config_int(value) end
+	},
+	{
+		name     = 'graph_width',
+		required = true,
+		default  = 20,
+		validate = function(value) return delightful.utils.config_int(value) end
 	},
 	{
 		name     = 'update_interval',
@@ -147,8 +158,8 @@ function load(self, config)
 		cpu_widget:set_border_color(bg_color)
 	end
 	local color_args = fg_color
-	local width  = cpu_config.graph_width
-	local height = 19
+	local height = beautiful.graph_height or cpu_config.graph_height
+	local width  = beautiful.graph_width  or cpu_config.graph_width
 	if fg_color and fg_center_color and fg_end_color then
 		color_args = {
 			type = 'linear',
