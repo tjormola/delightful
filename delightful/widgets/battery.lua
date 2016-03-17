@@ -173,7 +173,7 @@ function load(self, config)
 	local height = 19
 	if fg_color and fg_center_color and fg_end_color then
 		color_args = {
-			type = "linear",
+			type = 'linear',
 			from = { 0, 0 },
 			to = { width, height },
 			stops = {{ 0, fg_end_color }, { 0.5, fg_center_color }, { 1, fg_color }},
