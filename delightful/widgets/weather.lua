@@ -30,6 +30,7 @@
 -- Widget uses icons from the packages
 -- gnome-icon-theme-full adwaita-icon-theme-full libmateweather-common
 --
+--
 -- Configuration:
 --
 -- The load() function expects to get the location configuration as
