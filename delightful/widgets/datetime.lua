@@ -34,12 +34,12 @@ local string = { format = string.format }
 module('delightful.widgets.datetime')
 
 function load()
-	local widget = awful.widget.textclock()
-	local calendar_format = '%s'
-	if beautiful.fg_focus and beautiful.bg_focus then
-		calendar_format = string.format('<span color="%s" background="%s">%%s</span>',
-				beautiful.fg_focus, beautiful.bg_focus)
-	end
-	calendar2.addCalendarToWidget(widget, calendar_format)
-	return { widget } -- no icon
+    local widget = awful.widget.textclock()
+    local calendar_format = '%s'
+    if beautiful.fg_focus and beautiful.bg_focus then
+        calendar_format = string.format('<span color="%s" background="%s">%%s</span>',
+                beautiful.fg_focus, beautiful.bg_focus)
+    end
+    calendar2.addCalendarToWidget(widget, calendar_format)
+    return { widget } -- no icon
 end
