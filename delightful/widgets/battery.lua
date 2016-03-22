@@ -259,8 +259,8 @@ function load(self, config)
     if fg_color and fg_center_color and fg_end_color then
         color_args = {
             type = 'linear',
-            from = { 0, 0 },
-            to = { width, height },
+            from = { width / 2, 0 },
+            to = { width / 2, height },
             stops = {{ 0, fg_end_color }, { 0.5, fg_center_color }, { 1, fg_color }},
         }
     end
