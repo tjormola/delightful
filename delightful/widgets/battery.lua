@@ -275,7 +275,7 @@ end
 
 -- Vicious display formatter, also update widget tooltip and icon
 function vicious_formatter(widget, data)
-    local mask_state, mask_capacity
+    local mask_state = mask.DISCHARGING, mask_capacity
     if data[1] and state_mapping[data[1]] then
         mask_state = state_mapping[data[1]]
     end
