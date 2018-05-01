@@ -70,7 +70,7 @@ module('delightful.widgets.memory')
 -- Helper
 function is_swap_available()
     for line in io.lines('/proc/meminfo') do
-        local total_swap = tonumber(line:match('^SwapTotal:%s+(%d+)%s+kB4'))
+        local total_swap = tonumber(line:match('^SwapTotal:%s+(%d+)%s+kB$'))
         if total_swap and total_swap > 0 then
             return true
         end
