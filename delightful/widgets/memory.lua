@@ -214,23 +214,21 @@ end
 
 -- Vicious display formatter for memory graph, also update widget tooltip
 function vicious_formatter_memory(widget, data)
-    local memory_percentage = math.floor(((data[2] / data[3]) * 100) + 0.5)
     if icon_tooltip then
         local swap_string = ''
         if has_swap then
             swap_string = 'and swap '
         end
-        local tooltip_text = string.format(' Memory %susage statistics \n Current memory usage: %d%% (%dMB out of %dMB) ', swap_string, memory_percentage, data[2], data[3])
+        local tooltip_text = string.format(' Memory %susage statistics \n Current memory usage: %d%% (%dMB out of %dMB) ', swap_string, data[1], data[2], data[3])
         if has_swap then
-            local swap_percentage = math.floor(((data[6] / data[7]) * 100) + 0.5)
-            tooltip_text = string.format('%s\n Current swap usage: %d%% (%dMB out of %dMB) ', tooltip_text, swap_percentage, data[6], data[7])
+            tooltip_text = string.format('%s\n Current swap usage: %d%% (%dMB out of %dMB) ', tooltip_text, data[5], data[6], data[7])
         end
         icon_tooltip:set_text(tooltip_text)
     end
-    return memory_percentage
+    return data[1]
 end
 
 -- Vicious display formatter for swap graph
 function vicious_formatter_swap(widget, data)
-    return (data[6] / data[7]) * 100
+    return data[5]
 end
