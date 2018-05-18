@@ -259,7 +259,10 @@ CPU widget
 
 Date and time widget
 
-   No configuration options available at all.
+     * clock_format
+          + strftime() format string controlling what to display in the
+	    wibox. Not defined by default, in which case the default
+	    format of awful.textclock is used.
 
 IMAP widget
 
