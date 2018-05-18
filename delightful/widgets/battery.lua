@@ -24,10 +24,11 @@
 -- The load() function can be supplied with configuration.
 -- Format of the configuration is as follows.
 -- {
--- -- Name of the battery. Matches a file under the directory
--- -- /sys/class/power_supply/ and typically is "BATn" where n
--- -- is a number, most likely 0. 'BAT0' by default.
---        battery            = 'BAT2',
+-- -- Names of the batteries. Each name matches a file under the
+-- -- directory /sys/class/power_supply/ and typically is "BATn" where
+-- -- n is a number, most likely 1. If not specified (default), create
+-- -- a widget for each battery known to sysfs.
+--        batteries          = { 'BAT2' },
 -- -- Command to execute when left-clicking the widget icon.
 -- -- Empty by default.
 --        command            = 'gnome-power-preferences',
@@ -76,7 +77,9 @@ local vicious    = require('vicious')
 
 local bit        = require('bit')
 
+local io     = { lines = io.lines, popen = io.popen }
 local pairs  = pairs
+local table  = { insert = table.insert }
 local string = { format = string.format, sub = string.sub }
 
 module('delightful.widgets.battery')
@@ -90,17 +93,21 @@ local prev_icon
 
 local config_description = {
     {
-        name     = 'battery',
-        required = true,
-        default  = 'BAT0',
+        name     = 'batteries',
         validate = function(value)
-            local status, errors = delightful.utils.config_string(value)
+            local status, errors = delightful.utils.config_table(value)
             if not status then
                 return status, errors
             end
-            local battery_path = string.format('/sys/class/power_supply/%s/status', value)
-            if not awful.util.file_readable(battery_path) then
-                return false, string.format('Battery not found: %s', value)
+            for _, battery_name in pairs(value) do
+                status, errors = delightful.utils.config_string(battery_name)
+                if not status then
+                    return status, errors
+                end
+                local battery_path = string.format('/sys/class/power_supply/%s/status', battery_name)
+                if not awful.util.file_readable(battery_path) then
+                    return false, string.format('Battery not found: %s', battery_name)
+                end
             end
             return true
         end
@@ -222,8 +229,27 @@ function handle_config(user_config)
     battery_config = config_data
 end
 
+-- Identify all batteries known to sysfs
+function detect_batteries()
+    -- Need to invoke an external command via popen() to list the
+    -- content of directory to avoid adding a dependency on
+    -- luafilesystem (stock Lua cannot do this). Use find instead of ls
+    -- because it seems to use less memory.
+    local p = io.popen('find /sys/class/power_supply -mindepth 1 -maxdepth 1 -printf "%f\n"')
+    for power_supply in p:lines() do
+        -- Read the first (and only) line of the type file
+        local ps_type = io.lines('/sys/class/power_supply/' .. power_supply .. '/type')()
+        if ps_type and ps_type == 'Battery' then
+            table.insert(battery_config.batteries, power_supply)
+        end
+    end
+end
+
 -- Initalization
 function load(self, config)
+    local widgets = {}
+    local icons = {}
+
     handle_config(config)
     if fatal_error then
         delightful.utils.print_error('battery', fatal_error)
@@ -232,15 +258,9 @@ function load(self, config)
     if not battery_config.no_icon then
         icon_files = delightful.utils.find_icon_files(icon_description)
     end
-    if icon_files.battery_full and icon_files.battery_good_charging and icon_files.battery_good and icon_files.battery_low_charging and icon_files.battery_low and icon_files.battery_caution_charging and icon_files.battery_caution and icon_files.battery_empty and icon_files.battery_unknown and icon_files.error then
-        local buttons = awful.button({}, 1, function()
-                if not fatal_error and battery_config.command then
-                    awful.util.spawn(battery_config.command, true)
-                end
-        end)
-        icon = wibox.widget.imagebox()
-        icon:buttons(buttons)
-        icon_tooltip = awful.tooltip({ objects = { icon } })
+    if not battery_config.batteries then
+        battery_config.batteries = {}
+        detect_batteries()
     end
 
     local bg_color        = delightful.utils.find_theme_color({ 'bg_widget', 'bg_normal'                     })
@@ -248,29 +268,44 @@ function load(self, config)
     local fg_center_color = delightful.utils.find_theme_color({ 'fg_center_widget', 'fg_widget', 'fg_normal' })
     local fg_end_color    = delightful.utils.find_theme_color({ 'fg_end_widget', 'fg_widget', 'fg_normal'    })
 
-    local battery_widget = awful.widget.progressbar()
-    if bg_color then
-        battery_widget:set_border_color(bg_color)
-        battery_widget:set_background_color(bg_color)
-    end
-    local color_args = fg_color
-    local height = beautiful.progressbar_height or battery_config.progressbar_height
-    local width  = beautiful.progressbar_width  or battery_config.progressbar_width
-    if fg_color and fg_center_color and fg_end_color then
-        color_args = {
-            type = 'linear',
-            from = { width / 2, 0 },
-            to = { width / 2, height },
-            stops = {{ 0, fg_end_color }, { 0.5, fg_center_color }, { 1, fg_color }},
-        }
-    end
-    battery_widget:set_color(color_args)
-    battery_widget:set_width(width)
-    battery_widget:set_height(height)
-    battery_widget:set_vertical(true)
-    vicious.register(battery_widget, vicious.widgets.bat, vicious_formatter, battery_config.update_interval, battery_config.battery)
+    for _, battery_name in pairs(battery_config.batteries) do
+        if icon_files.battery_full and icon_files.battery_good_charging and icon_files.battery_good and icon_files.battery_low_charging and icon_files.battery_low and icon_files.battery_caution_charging and icon_files.battery_caution and icon_files.battery_empty and icon_files.battery_unknown and icon_files.error then
+            local buttons = awful.button({}, 1, function()
+                    if not fatal_error and battery_config.command then
+                        awful.util.spawn(battery_config.command, true)
+                    end
+            end)
+            icon = wibox.widget.imagebox()
+            icon:buttons(buttons)
+            icon_tooltip = awful.tooltip({ objects = { icon } })
+            icons[battery_name] = icon
+        end
 
-    return { battery_widget }, { icon }
+        local battery_widget = awful.widget.progressbar()
+        if bg_color then
+            battery_widget:set_border_color(bg_color)
+            battery_widget:set_background_color(bg_color)
+        end
+        local color_args = fg_color
+        local height = beautiful.progressbar_height or battery_config.progressbar_height
+        local width  = beautiful.progressbar_width  or battery_config.progressbar_width
+        if fg_color and fg_center_color and fg_end_color then
+            color_args = {
+                type = 'linear',
+                from = { width / 2, 0 },
+                to = { width / 2, height },
+                stops = {{ 0, fg_end_color }, { 0.5, fg_center_color }, { 1, fg_color }},
+            }
+        end
+        battery_widget:set_color(color_args)
+        battery_widget:set_width(width)
+        battery_widget:set_height(height)
+        battery_widget:set_vertical(true)
+        widgets[battery_name] = battery_widget
+        vicious.register(battery_widget, vicious.widgets.bat, vicious_formatter, battery_config.update_interval, battery_name)
+    end
+
+    return widgets, icons
 end
 
 -- Vicious display formatter, also update widget tooltip and icon
